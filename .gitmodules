@@ -1,0 +1,18 @@
+[submodule "third_party/rknn-llm"]
+	path = third_party/rknn-llm
+	url = https://github.com/airockchip/rknn-llm.git
+[submodule "third_party/InternVL3.5-1B-NPU"]
+	path = third_party/InternVL3.5-1B-NPU
+	url = https://github.com/Qengineering/InternVL3.5-1B-NPU
+[submodule "third_party/InternVL3.5-2B-NPU"]
+	path = third_party/InternVL3.5-2B-NPU
+	url = https://github.com/Qengineering/InternVL3.5-2B-NPU
+[submodule "third_party/InternVL3.5-4B-NPU"]
+	path = third_party/InternVL3.5-4B-NPU
+	url = https://github.com/Qengineering/InternVL3.5-4B-NPU.git
+[submodule "third_party/Qwen3-VL-2B-NPU"]
+	path = third_party/Qwen3-VL-2B-NPU
+	url = https://github.com/Qengineering/Qwen3-VL-2B-NPU.git
+[submodule "third_party/Qwen3-VL-4B-NPU"]
+	path = third_party/Qwen3-VL-4B-NPU
+	url = https://github.com/Qengineering/Qwen3-VL-4B-NPU.git

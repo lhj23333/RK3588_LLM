@@ -1,0 +1,39 @@
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/rk3588_llm_workspace/models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=linear_97, n_dims=3, dims=[1, 256, 2560, 0], n_elems=655360, size=1310720, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image shows a person wearing a white shirt with the text "I ❤️ U" printed on it, which stands for "I love you." The person appears to be smiling and looking directly at the camera.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  17138.12                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       372.37           25        14.89                    67.14                  
+I rkllm:  Generate      8882.73          43        206.58                   4.84                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 

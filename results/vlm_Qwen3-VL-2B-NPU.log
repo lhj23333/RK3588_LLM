@@ -1,0 +1,43 @@
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/rk3588_llm_workspace/models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 672, 672, 3], n_elems=1354752, size=2709504, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=4820, n_dims=2, dims=[441, 2048, 0, 0], n_elems=903168, size=1806336, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=1669, n_dims=2, dims=[441, 2048, 0, 0], n_elems=903168, size=1806336, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=2720, n_dims=2, dims=[441, 2048, 0, 0], n_elems=903168, size=1806336, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=3771, n_dims=2, dims=[441, 2048, 0, 0], n_elems=903168, size=1806336, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=672, width=672, channel=3
+
+
+User: Answer: The image shows the cover of a book titled "The Art of War" by Sun Tzu, with the subtitle "A New Translation and Commentary." The cover features a minimalist design with a dark background and white text. The title and author's name are prominently displayed in large, bold font at the top. Below the title, there is a smaller section that includes additional information about the book, such as its translation and commentary by a specific individual. The overall aesthetic is clean and professional, suggesting an academic or scholarly edition of the classic text.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  7447.02                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       175.18           25        7.01                     142.71                 
+I rkllm:  Generate      10798.63         109       99.07                    10.09                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  3.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 

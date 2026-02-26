@@ -1,0 +1,53 @@
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/rk3588_llm_workspace/models/internvl3_5-1b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=2723, n_dims=3, dims=[1, 256, 1024, 0], n_elems=262144, size=524288, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image appears to be a screenshot of an application or interface, likely from a mobile device given the context and design elements. The screen shows a user interface with various icons and text elements that suggest it's part of a digital service or app.
+
+Here are some details visible in the image:
+
+1. **Icons**: There are several small icons scattered across the screen. These could represent different functions or features within the application.
+2. **Text**: Some text is present, which might be labels for the icons or descriptions of the functionalities they represent.
+3. **Layout**: The layout seems to follow a typical mobile app design with sections that likely correspond to different screens or pages.
+
+Without more specific details about the content of the image, it's challenging to provide an exact description. However, based on common patterns in such interfaces, here is a general breakdown:
+
+- **Top Section**: This might contain navigation options or introductory information.
+- **Middle Sections**: These could be main features or sections of the app, each with its own set of icons and text labels.
+- **Bottom Section**: This might include additional settings, help information, or other utility functions.
+
+If you have more specific details about the content visible in the image, I can provide a more precise description.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  2731.32                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       107.60           25        4.30                     232.34                 
+I rkllm:  Generate      11979.62         253       47.35                    21.12                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  1.88        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
