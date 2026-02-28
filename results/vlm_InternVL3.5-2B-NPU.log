@@ -25,12 +25,12 @@ Model input height=448, width=448, channel=3
 
 User: Answer: I'm unable to view or analyze images directly. However, if you describe the content of the image, I can help provide information based on your description. Please share details about what you see in the image!
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Model init time (ms)  7205.16                                                                    
+I rkllm:  Model init time (ms)  7459.90                                                                    
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Prefill       185.01           25        7.40                     135.13                 
-I rkllm:  Generate      4508.34          42        107.34                   9.32                   
+I rkllm:  Prefill       185.19           25        7.41                     134.99                 
+I rkllm:  Generate      4302.93          42        102.45                   9.76                   
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Peak Memory Usage (GB)
 I rkllm:  2.95        

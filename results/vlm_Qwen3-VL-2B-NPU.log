@@ -29,15 +29,15 @@ Model input height=672, width=672, channel=3
 
 User: Answer: The image shows the cover of a book titled "The Art of War" by Sun Tzu, with the subtitle "A New Translation and Commentary." The cover features a minimalist design with a dark background and white text. The title and author's name are prominently displayed in large, bold font at the top. Below the title, there is a smaller section that includes additional information about the book, such as its translation and commentary by a specific individual. The overall aesthetic is clean and professional, suggesting an academic or scholarly edition of the classic text.
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Model init time (ms)  7447.02                                                                    
+I rkllm:  Model init time (ms)  7365.78                                                                    
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Prefill       175.18           25        7.01                     142.71                 
-I rkllm:  Generate      10798.63         109       99.07                    10.09                  
+I rkllm:  Prefill       177.89           25        7.12                     140.54                 
+I rkllm:  Generate      10885.14         109       99.86                    10.01                  
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Peak Memory Usage (GB)
-I rkllm:  3.27        
+I rkllm:  3.26        
 I rkllm: --------------------------------------------------------------------------------------
 
 User: 

@@ -25,12 +25,12 @@ Model input height=448, width=448, channel=3
 
 User: Answer: The image shows a person wearing a white shirt with the text "I ❤️ U" printed on it, which stands for "I love you." The person appears to be smiling and looking directly at the camera.
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Model init time (ms)  17138.12                                                                   
+I rkllm:  Model init time (ms)  17322.57                                                                   
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Prefill       372.37           25        14.89                    67.14                  
-I rkllm:  Generate      8882.73          43        206.58                   4.84                   
+I rkllm:  Prefill       357.51           25        14.30                    69.93                  
+I rkllm:  Generate      8790.40          43        204.43                   4.89                   
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Peak Memory Usage (GB)
 I rkllm:  5.27        

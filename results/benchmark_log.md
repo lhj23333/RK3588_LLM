@@ -26,11 +26,11 @@
 
 | 模型名称 | 参数量 | 量化精度 | NPU 核心数 | 峰值 DRAM 占用 (GB) | 图像处理耗时 (s) | 推理速度 (TPS) | 备注 (是否 OOM/稳定) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Qwen3-VL | 2B | w8a8 | 3 Cores | 3.27 | ~0.18 (Prefill) | 10.09 | 板端实测；稳定 |
-| Qwen3-VL | 4B | w8a8 | 3 Cores | 5.44 | ~0.37 (Prefill) | 4.87 | 板端实测；稳定 |
-| InternVL3.5 | 1B | w8a8 | 3 Cores | 1.88 | ~0.11 (Prefill) | 21.12 | 板端实测；稳定 |
-| InternVL3.5 | 2B | w8a8 | 3 Cores | 2.95 | ~0.19 (Prefill) | 9.32 | 板端实测；稳定 |
-| InternVL3.5 | 4B | w8a8 | 3 Cores | 5.27 | ~0.37 (Prefill) | 4.84 | 板端实测；稳定 |
+| Qwen3-VL | 2B | w8a8 | 3 Cores | 3.26 | ~0.18 (Prefill) | 10.01 | 板端实测；稳定 |
+| Qwen3-VL | 4B | w8a8 | 3 Cores | 5.44 | ~0.37 (Prefill) | 4.86 | 板端实测；稳定 |
+| InternVL3.5 | 1B | w8a8 | 3 Cores | 1.89 | ~0.11 (Prefill) | 21.08 | 板端实测；稳定 |
+| InternVL3.5 | 2B | w8a8 | 3 Cores | 2.95 | ~0.19 (Prefill) | 9.76 | 板端实测；稳定 |
+| InternVL3.5 | 4B | w8a8 | 3 Cores | 5.27 | ~0.37 (Prefill) | 4.89 | 板端实测；稳定 |
 
 ## 3. 失败/不可行记录
 

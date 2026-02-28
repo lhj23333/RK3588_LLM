@@ -39,15 +39,15 @@ Without more specific details about the content of the image, it's challenging t
 
 If you have more specific details about the content visible in the image, I can provide a more precise description.
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Model init time (ms)  2731.32                                                                    
+I rkllm:  Model init time (ms)  2739.55                                                                    
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Prefill       107.60           25        4.30                     232.34                 
-I rkllm:  Generate      11979.62         253       47.35                    21.12                  
+I rkllm:  Prefill       108.90           25        4.36                     229.56                 
+I rkllm:  Generate      12004.19         253       47.45                    21.08                  
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Peak Memory Usage (GB)
-I rkllm:  1.88        
+I rkllm:  1.89        
 I rkllm: --------------------------------------------------------------------------------------
 
 User: 

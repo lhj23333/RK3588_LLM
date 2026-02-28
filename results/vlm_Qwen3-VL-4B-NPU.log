@@ -33,12 +33,12 @@ If you describe what’s in the image (e.g., “a cat sitting on a windowsill,�
 
 Let me know how else I can assist. 😊
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Model init time (ms)  17071.91                                                                   
+I rkllm:  Model init time (ms)  16837.26                                                                   
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
 I rkllm: --------------------------------------------------------------------------------------
-I rkllm:  Prefill       367.13           25        14.69                    68.10                  
-I rkllm:  Generate      15002.25         73        205.51                   4.87                   
+I rkllm:  Prefill       369.78           25        14.79                    67.61                  
+I rkllm:  Generate      15026.03         73        205.84                   4.86                   
 I rkllm: --------------------------------------------------------------------------------------
 I rkllm:  Peak Memory Usage (GB)
 I rkllm:  5.44        
