@@ -1,4 +1,21 @@
 # 模型权重
 models/
+
 # 编译产物
 build/
+__pycache__/
+
+# 环境
+llm_env/
+
+# 第三方库
+third_party/*
+
+# 日志
+# logs/
+
+# 结果
+# results/
+
+archive/
+AGENTS.md

@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "image": "data/benchmark/images/ChineseWall.jpg",
+    "prompt": "Please describe this image in detail."
+  },
+  {
+    "id": 2,
+    "image": "data/benchmark/images/Moon.jpg",
+    "prompt": "Please describe this image in detail."
+  },
+  {
+    "id": 3,
+    "image": "data/benchmark/images/Pizza.jpg",
+    "prompt": "Please describe this image in detail."
+  },
+  {
+    "id": 4,
+    "image": "data/benchmark/images/Singapore.jpg",
+    "prompt": "Please describe this image in detail."
+  },
+  {
+    "id": 5,
+    "image": "data/benchmark/images/Titanic.jpg",
+    "prompt": "Please describe this image in detail."
+  }
+]

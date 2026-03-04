@@ -1,0 +1,7 @@
+[
+  {"id": 1, "category": "short_test", "prompt": "你好，请自我介绍一下。"},
+  {"id": 2, "category": "math", "prompt": "计算 123 乘以 456 的结果并解释步骤。"},
+  {"id": 3, "category": "code", "prompt": "用 Python 写一个快速排序算法。"},
+  {"id": 4, "category": "logic", "prompt": "树上原本有10只鸟，开枪打死了一只，还剩几只？"},
+  {"id": 5, "category": "long_text_cache_test", "prompt": "请写一篇关于人工智能未来发展对社会影响的长篇文章，包含经济、教育、医疗三个方面，字数要求详尽，至少分三段。"}
+]

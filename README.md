@@ -27,11 +27,15 @@ rk3588_llm_workspace/
 │   ├── FINAL_REPORT.md       # Feasibility and summary
 │   └── vlm_*.log             # Per-VLM run logs
 ├── scripts/
-│   ├── build_all_vlm.sh      # Build all 5 VLM demos
-│   ├── build_text_llm_demo.sh
+│   ├── converter/
+│   │   ├── README_model_converter.md
+│   │   └── model_converter.py
+│   ├── llm/
+│   │   └── build_text_llm_demo.sh
+│   ├── vlm/
+│   │   └── build_all_vlm.sh
 │   ├── fix_freq_rk3588.sh    # Lock CPU/NPU/DDR to max perf (required before benchmarks)
-│   ├── run_vlm_benchmark.sh  # Single VLM run
-│   └── run_all_vlm_benchmarks.sh  # Run all VLMs, write logs to results/
+│   └── monitor_perf.sh       # Hardware performance monitor
 └── third_party/              # Git submodules
     ├── rknn-llm              # Rockchip RKLLM SDK (runtime + headers)
     ├── InternVL3.5-1B-NPU    # Qengineering VLM demo
@@ -126,7 +130,7 @@ Create `models/` in the workspace root. **Do not** convert models on the board (
 - **Text LLM**: Qwen3-0.6B, 1.7B, 4B (`.rkllm` only). Links and naming: [docs/03_model_acquisition.md](docs/03_model_acquisition.md).
 - **VLM**: For each VLM you need the corresponding `.rkllm` + `.rknn` (e.g. `qwen3-vl-2b-instruct_w8a8_rk3588.rkllm` + `qwen3-vl-2b_vision_672_rk3588.rknn`). Same doc lists all download links and target filenames.
 
-The `scripts/run_vlm_benchmark.sh` and `run_all_vlm_benchmarks.sh` expect files under `models/` as documented there and in `docs/03_model_acquisition.md`.
+The new `run_benchmark.py` framework expects models to be configured in `conf/models_config.yaml`.
 
 ### 5. Performance mode (required before benchmarks)
 
@@ -141,14 +145,14 @@ sudo bash scripts/fix_freq_rk3588.sh
 **Text LLM demo:**
 
 ```bash
-bash scripts/build_text_llm_demo.sh
+bash scripts/llm/build_text_llm_demo.sh
 # Binary: demos/build/text_llm_demo
 ```
 
 **All VLM demos:**
 
 ```bash
-bash scripts/build_all_vlm.sh
+bash scripts/vlm/build_all_vlm.sh
 # Builds InternVL3.5-1B/2B/4B-NPU and Qwen3-VL-2B/4B-NPU; each has VLM_NPU in its directory or build/
 ```
 
@@ -163,31 +167,22 @@ export RKLLM_LOG_LEVEL=1
 
 Replace the model path for 1.7B/4B as in [docs/04_run_text_llm.md](docs/04_run_text_llm.md). Type `exit` to quit.
 
-### 8. Run a single VLM
+### 8. Run Benchmarks (Automated Framework)
+
+We have introduced a unified Python benchmark framework to simplify testing and memory profiling.
 
 ```bash
-export LD_LIBRARY_PATH="third_party/rknn-llm/examples/multimodal_model_demo/deploy/3rdparty/librknnrt/Linux/librknn_api/aarch64:third_party/rknn-llm/rkllm-runtime/Linux/librkllm_api/aarch64:$LD_LIBRARY_PATH"
-export RKLLM_LOG_LEVEL=1
-
-bash scripts/run_vlm_benchmark.sh <demo_name> <image_path> [log_file]
-# Example:
-bash scripts/run_vlm_benchmark.sh InternVL3.5-1B-NPU third_party/InternVL3.5-1B-NPU/Moon.jpg results/vlm_1b.log
-```
-
-`<demo_name>`: `InternVL3.5-1B-NPU`, `InternVL3.5-2B-NPU`, `InternVL3.5-4B-NPU`, `Qwen3-VL-2B-NPU`, `Qwen3-VL-4B-NPU`.
-
-### 9. Run all VLM benchmarks (reproduce results table)
-
-```bash
+# Ensure performance mode is active
 sudo bash scripts/fix_freq_rk3588.sh
-export RKLLM_LOG_LEVEL=1
-export BATCH=1
 
-bash scripts/run_all_vlm_benchmarks.sh [image_path]
-# Default image: third_party/InternVL3.5-1B-NPU/Moon.jpg
+# Run all configured models
+sudo python3 run_benchmark.py --model all
+
+# Or run a specific model
+sudo python3 run_benchmark.py --model qwen3-0.6b-text
 ```
 
-Logs are written to `results/vlm_<demo_name>.log`. From each log you can read **Peak Memory Usage (GB)** and **Generate Tokens per Second** to fill or check [results/benchmark_log.md](results/benchmark_log.md).
+Logs and memory metrics (static model RAM + dynamic KV-Cache) will be automatically parsed and saved to `results/benchmark_report.md`.
 
 ---
 

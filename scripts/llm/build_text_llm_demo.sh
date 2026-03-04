@@ -3,9 +3,11 @@ set -e
 
 WORKSPACE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RKLLM_SDK="${WORKSPACE_ROOT}/third_party/rknn-llm"
+
 RKLLM_INCLUDE="${RKLLM_SDK}/rkllm-runtime/Linux/librkllm_api/include"
 RKLLM_LIB="${RKLLM_SDK}/rkllm-runtime/Linux/librkllm_api/aarch64"
 SRC="${RKLLM_SDK}/examples/rkllm_api_demo/deploy/src/llm_demo.cpp"
+
 BUILD_DIR="${WORKSPACE_ROOT}/demos/build"
 OUTPUT="${BUILD_DIR}/text_llm_demo"
 
