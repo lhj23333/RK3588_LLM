@@ -1,0 +1,223 @@
+=== Benchmark Run: internvl3.5-4b-npu ===
+Time: 2026-03-05 20:24:16
+
+--- Task 1 (Image: data/benchmark/images/ChineseWall.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 45.19s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=linear_97, n_dims=3, dims=[1, 256, 2560, 0], n_elems=655360, size=1310720, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image depicts a serene and picturesque landscape featuring a winding river that flows through lush greenery. The river is flanked by tall trees with vibrant foliage, creating a canopy overhead. In the distance, there are rolling hills covered in dense forests, adding depth to the scene. A small wooden bridge crosses the river near the center of the image, providing a quaint and charming focal point. The sky above is clear with a few wispy clouds, suggesting a calm and peaceful day. Overall, the image conveys a sense of tranquility and natural beauty.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  15870.57                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       277.83           26        10.69                    93.58                  
+I rkllm:  Generate      17452.30         111       157.23                   6.36                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 2 (Image: data/benchmark/images/Moon.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 46.21s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=linear_97, n_dims=3, dims=[1, 256, 2560, 0], n_elems=655360, size=1310720, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image depicts a serene and picturesque landscape featuring a winding river that flows through lush greenery. The river is flanked by tall trees with vibrant foliage, creating a canopy overhead. In the distance, there are rolling hills covered in dense forests, adding depth to the scene. A small wooden bridge crosses the river near the center of the image, providing a quaint and charming focal point. The sky above is clear with a few wispy clouds, suggesting a calm and peaceful day. Overall, the image conveys a sense of tranquility and natural beauty.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16828.41                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       278.88           26        10.73                    93.23                  
+I rkllm:  Generate      17527.51         111       157.91                   6.33                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 3 (Image: data/benchmark/images/Pizza.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 45.86s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=linear_97, n_dims=3, dims=[1, 256, 2560, 0], n_elems=655360, size=1310720, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image depicts a serene and picturesque landscape featuring a winding river that flows through lush greenery. The river is flanked by tall trees with vibrant foliage, creating a canopy overhead. In the distance, there are rolling hills covered in dense forests, adding depth to the scene. A small wooden bridge crosses the river near the center of the image, providing a quaint and charming focal point. The sky above is clear with a few wispy clouds, suggesting a calm and peaceful day. Overall, the image conveys a sense of tranquility and natural beauty.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16571.98                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       278.65           26        10.72                    93.31                  
+I rkllm:  Generate      17415.39         111       156.90                   6.37                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 4 (Image: data/benchmark/images/Singapore.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 45.38s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=linear_97, n_dims=3, dims=[1, 256, 2560, 0], n_elems=655360, size=1310720, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image depicts a serene and picturesque landscape featuring a winding river that flows through lush greenery. The river is flanked by tall trees with vibrant foliage, creating a canopy overhead. In the distance, there are rolling hills covered in dense forests, adding depth to the scene. A small wooden bridge crosses the river near the center of the image, providing a quaint and charming focal point. The sky above is clear with a few wispy clouds, suggesting a calm and peaceful day. Overall, the image conveys a sense of tranquility and natural beauty.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16069.79                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       279.30           26        10.74                    93.09                  
+I rkllm:  Generate      17485.37         111       157.53                   6.35                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 5 (Image: data/benchmark/images/Titanic.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 46.15s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 1
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=linear_97, n_dims=3, dims=[1, 256, 2560, 0], n_elems=655360, size=1310720, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image depicts a serene and picturesque landscape featuring a winding river that flows through lush greenery. The river is flanked by tall trees with vibrant foliage, creating a canopy overhead. In the distance, there are rolling hills covered in dense forests, adding depth to the scene. A small wooden bridge crosses the river near the center of the image, providing a quaint and charming focal point. The sky above is clear with a few wispy clouds, suggesting a calm and peaceful day. Overall, the image conveys a sense of tranquility and natural beauty.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16773.22                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       280.65           26        10.79                    92.64                  
+I rkllm:  Generate      17504.62         111       157.70                   6.34                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.27        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+

@@ -10,13 +10,26 @@ class RK3588MemoryTracker:
         self.thread = None
 
     def clear_caches(self):
-        print("[Profiler] Clearing system caches for accurate memory measurement...")
+        print("[Profiler] Attempting to clear system caches for accurate memory measurement...")
         try:
-            # Need to flush and drop caches. Using sudo if required, though typically 
-            # this script might be run with sudo anyway as per fix_freq_rk3588.sh instructions.
-            subprocess.run("sync; echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null", shell=True, check=True)
-        except subprocess.CalledProcessError:
-            print("[Warning] Failed to clear caches. Please run the script with sudo for accurate profiling.")
+            # Try to drop caches. This requires root privileges.
+            # If it fails, we continue anyway but memory measurements may be slightly less accurate.
+            result = subprocess.run(
+                "sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null",
+                shell=True,
+                check=False,
+                capture_output=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                print("[Profiler] System caches cleared successfully.")
+            else:
+                print("[Profiler] Warning: Failed to clear caches (permission denied).")
+                print("[Profiler] Run with sudo for accurate memory profiling, or skip if not critical.")
+        except subprocess.TimeoutExpired:
+            print("[Profiler] Warning: Timeout while clearing caches, skipping.")
+        except Exception as e:
+            print(f"[Profiler] Warning: Failed to clear caches: {e}")
 
     def get_system_used_memory_mb(self):
         """Parse /proc/meminfo to get current used physical memory in MB"""

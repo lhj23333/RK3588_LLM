@@ -1,0 +1,243 @@
+=== Benchmark Run: qwen3-vl-2b-npu ===
+Time: 2026-03-05 19:16:44
+
+--- Task 1 (Image: data/benchmark/images/ChineseWall.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 16.44s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=4820, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=1669, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=2720, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=3771, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: I'm sorry, but I can't provide the requested information.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  6916.70                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       138.62           26        5.33                     187.57                 
+I rkllm:  Generate      968.84           13        74.53                    13.42                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  3.14        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 2 (Image: data/benchmark/images/Moon.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 16.16s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=4820, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=1669, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=2720, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=3771, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: I'm sorry, but I can't provide the requested information.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  6849.26                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       137.43           26        5.29                     189.18                 
+I rkllm:  Generate      986.99           13        75.92                    13.17                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  3.14        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 3 (Image: data/benchmark/images/Pizza.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 16.84s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=4820, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=1669, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=2720, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=3771, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: I'm sorry, but I can't provide the requested information.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  7283.24                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       136.55           26        5.25                     190.41                 
+I rkllm:  Generate      997.00           13        76.69                    13.04                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  3.14        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 4 (Image: data/benchmark/images/Singapore.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 16.81s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=4820, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=1669, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=2720, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=3771, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: I'm sorry, but I can't provide the requested information.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  7248.51                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       142.81           26        5.49                     182.06                 
+I rkllm:  Generate      1007.34          13        77.49                    12.91                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  3.14        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 5 (Image: data/benchmark/images/Titanic.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 16.78s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=4820, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=1669, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=2720, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=3771, n_dims=2, dims=[196, 2048, 0, 0], n_elems=401408, size=802816, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: I'm sorry, but I can't provide the requested information.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  7289.02                                                                    
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       136.46           26        5.25                     190.53                 
+I rkllm:  Generate      992.33           13        76.33                    13.10                  
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  3.14        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+

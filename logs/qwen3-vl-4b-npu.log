@@ -1,0 +1,273 @@
+=== Benchmark Run: qwen3-vl-4b-npu ===
+Time: 2026-03-05 16:19:54
+
+--- Task 1 (Image: data/benchmark/images/ChineseWall.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 57.91s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=pooler_output, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=deepstack_0, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=deepstack_1, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=deepstack_2, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image is a stylized, cartoonish illustration of a young girl with long, flowing blonde hair and large, expressive eyes. She is wearing a white dress with a blue sash that reads “SCHOOL” in bold, uppercase letters. The girl is holding a small, open book or notebook in her left hand, suggesting she is engaged in reading or studying.
+
+Her right arm is extended outward, as if she is pointing to something off-screen or gesturing toward the viewer. Her facial expression is cheerful and confident, with a slight smile and bright eyes that convey enthusiasm and curiosity.
+
+The background is minimalistic, featuring soft pastel colors—primarily light blue and white—with faint outlines of buildings or structures in the distance, possibly indicating a school setting. The overall style is clean, modern, and playful, with smooth lines and flat color fills typical of vector illustrations or digital cartoons.
+
+This image likely represents themes of education, learning, or childhood curiosity, with an emphasis on positivity and engagement.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16427.92                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       290.08           26        11.16                    89.63                  
+I rkllm:  Generate      31646.60         201       157.45                   6.35                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.44        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 2 (Image: data/benchmark/images/Moon.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 58.52s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=pooler_output, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=deepstack_0, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=deepstack_1, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=deepstack_2, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image is a stylized, cartoonish illustration of a young girl with long, flowing blonde hair and large, expressive eyes. She is wearing a white dress with a blue sash that reads “SCHOOL” in bold, uppercase letters. The girl is holding a small, open book or notebook in her left hand, suggesting she is engaged in reading or studying.
+
+Her right arm is extended outward, as if she is pointing to something off-screen or gesturing toward the viewer. Her facial expression is cheerful and confident, with a slight smile and bright eyes that convey enthusiasm and curiosity.
+
+The background is minimalistic, featuring soft pastel colors—primarily light blue and white—with faint outlines of buildings or structures in the distance, possibly indicating a school setting. The overall style is clean, modern, and playful, with smooth lines and flat color fills typical of vector illustrations or digital cartoons.
+
+This image likely represents themes of education, learning, or childhood curiosity, with an emphasis on positivity and engagement.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16857.36                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       279.36           26        10.74                    93.07                  
+I rkllm:  Generate      31828.19         201       158.35                   6.32                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.44        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 3 (Image: data/benchmark/images/Pizza.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 58.49s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=pooler_output, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=deepstack_0, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=deepstack_1, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=deepstack_2, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image is a stylized, cartoonish illustration of a young girl with long, flowing blonde hair and large, expressive eyes. She is wearing a white dress with a blue sash that reads “SCHOOL” in bold, uppercase letters. The girl is holding a small, open book or notebook in her left hand, suggesting she is engaged in reading or studying.
+
+Her right arm is extended outward, as if she is pointing to something off-screen or gesturing toward the viewer. Her facial expression is cheerful and confident, with a slight smile and bright eyes that convey enthusiasm and curiosity.
+
+The background is minimalistic, featuring soft pastel colors—primarily light blue and white—with faint outlines of buildings or structures in the distance, possibly indicating a school setting. The overall style is clean, modern, and playful, with smooth lines and flat color fills typical of vector illustrations or digital cartoons.
+
+This image likely represents themes of education, learning, or childhood curiosity, with an emphasis on positivity and engagement.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16904.47                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       278.23           26        10.70                    93.45                  
+I rkllm:  Generate      31735.09         201       157.89                   6.33                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.44        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 4 (Image: data/benchmark/images/Singapore.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 58.35s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=pooler_output, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=deepstack_0, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=deepstack_1, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=deepstack_2, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image is a stylized, cartoonish illustration of a young girl with long, flowing blonde hair and large, expressive eyes. She is wearing a white dress with a blue sash that reads “SCHOOL” in bold, uppercase letters. The girl is holding a small, open book or notebook in her left hand, suggesting she is engaged in reading or studying.
+
+Her right arm is extended outward, as if she is pointing to something off-screen or gesturing toward the viewer. Her facial expression is cheerful and confident, with a slight smile and bright eyes that convey enthusiasm and curiosity.
+
+The background is minimalistic, featuring soft pastel colors—primarily light blue and white—with faint outlines of buildings or structures in the distance, possibly indicating a school setting. The overall style is clean, modern, and playful, with smooth lines and flat color fills typical of vector illustrations or digital cartoons.
+
+This image likely represents themes of education, learning, or childhood curiosity, with an emphasis on positivity and engagement.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  16842.63                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       274.85           26        10.57                    94.60                  
+I rkllm:  Generate      31681.72         201       157.62                   6.34                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.44        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+
+--- Task 5 (Image: data/benchmark/images/Titanic.jpg | Prompt: Please describe this image in detail.) ---
+Duration: 57.43s
+Output:
+I rkllm: rkllm-runtime version: 1.2.3, rknpu driver version: 0.9.8, platform: RK3588
+I rkllm: loading rkllm model from /home/rockchip/Desktop/RK3588_LLM/models/qwen3-vl-4b-instruct_w8a8_rk3588.rkllm
+I rkllm: rkllm-toolkit version: 1.2.3, max_context_limit: 4096, npu_core_num: 3, target_platform: RK3588, model_dtype: W8A8
+I rkllm: Enabled cpus: [4, 5, 6, 7]
+I rkllm: Enabled cpus num: 4
+I rkllm: Using mrope
+rkllm init success
+I rkllm: reset chat template:
+I rkllm: system_prompt: <|im_start|>system\nYou are a helpful assistant.<|im_end|>\n
+I rkllm: prompt_prefix: <|im_start|>user\n
+I rkllm: prompt_postfix: <|im_end|>\n<|im_start|>assistant\n
+W rkllm: Calling rkllm_set_chat_template will disable the internal automatic chat template parsing, including enable_thinking. Make sure your custom prompt is complete and valid.
+
+used NPU cores 3
+
+model input num: 1, output num: 4
+
+Input tensors:
+  index=0, name=pixel, n_dims=4, dims=[1, 448, 448, 3], n_elems=602112, size=1204224, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Output tensors:
+  index=0, name=pooler_output, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=deepstack_0, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=deepstack_1, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=deepstack_2, n_dims=2, dims=[196, 2560, 0, 0], n_elems=501760, size=1003520, fmt=UNDEFINED, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+
+Model input height=448, width=448, channel=3
+
+
+User: Answer: The image is a stylized, cartoonish illustration of a young girl with long, flowing blonde hair and large, expressive eyes. She is wearing a white dress with a blue sash that reads “SCHOOL” in bold, uppercase letters. The girl is holding a small, open book or notebook in her left hand, suggesting she is engaged in reading or studying.
+
+Her right arm is extended outward, as if she is pointing to something off-screen or gesturing toward the viewer. Her facial expression is cheerful and confident, with a slight smile and bright eyes that convey enthusiasm and curiosity.
+
+The background is minimalistic, featuring soft pastel colors—primarily light blue and white—with faint outlines of buildings or structures in the distance, possibly indicating a school setting. The overall style is clean, modern, and playful, with smooth lines and flat color fills typical of vector illustrations or digital cartoons.
+
+This image likely represents themes of education, learning, or childhood curiosity, with an emphasis on positivity and engagement.
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Model init time (ms)  15858.97                                                                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Stage         Total Time (ms)  Tokens    Time per Token (ms)      Tokens per Second      
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Prefill       291.27           26        11.20                    89.26                  
+I rkllm:  Generate      31707.20         201       157.75                   6.34                   
+I rkllm: --------------------------------------------------------------------------------------
+I rkllm:  Peak Memory Usage (GB)
+I rkllm:  5.44        
+I rkllm: --------------------------------------------------------------------------------------
+
+User: 
+--------------------------------------------------
+

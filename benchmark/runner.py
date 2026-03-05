@@ -110,6 +110,7 @@ class BenchmarkRunner:
             "model_data_mb": 0.0,
             "kv_cache_overhead_mb": 0.0,
             "total_peak_mb": 0.0,
+            "npu_core_num": 0,
             "status": status
         }
         
@@ -128,6 +129,9 @@ class BenchmarkRunner:
         max_total_peak = max([m.get("total_peak_mb", 0.0) for m in metrics_list])
         
         count = len(metrics_list)
+
+        npu_cores = [m.get("npu_core_num", 0) for m in metrics_list]
+        max_npu_core = max(npu_cores) if npu_cores else 0
         
         return {
             "model_name": model_name,
@@ -140,5 +144,6 @@ class BenchmarkRunner:
             "model_data_mb": max_model_data,
             "kv_cache_overhead_mb": max_kv_cache,
             "total_peak_mb": max_total_peak,
+            "npu_core_num": max_npu_core,
             "status": status
         }

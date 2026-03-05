@@ -15,7 +15,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # 动态解析配置中用到的所有 VLM demo 目录名
-VLM_NAMES=$(grep 'binary_path: "third_party/' "$CONFIG_FILE" | awk -F '"' '{print $2}' | awk -F '/' '{print $2}' | sort | uniq | tr '\n' ' ' | sed 's/ $//')
+# 从 yaml 键名提取 vlm 模型，假设符合 name-npu 格式，映射到 third_party 目录名 (例如 internvl3.5-1b-npu 映射到 InternVL3.5-1B-NPU)
+# 为了简单，直接手动列出或者从配置文件自动转换。
+# 既然我们已经把二进制改到 demos/build 目录了，这里我们直接从 keys 提取即可
+VLM_NAMES="InternVL3.5-1B-NPU InternVL3.5-2B-NPU InternVL3.5-4B-NPU Qwen3-VL-2B-NPU Qwen3-VL-4B-NPU"
+
 
 RKLLM_SO="$WORKSPACE_ROOT/third_party/rknn-llm/rkllm-runtime/Linux/librkllm_api/aarch64/librkllmrt.so"
 RKNN_SO="$WORKSPACE_ROOT/third_party/rknn-llm/examples/multimodal_model_demo/deploy/3rdparty/librknnrt/Linux/librknn_api/aarch64/librknnrt.so"
@@ -64,8 +68,13 @@ for name in $VLM_NAMES; do
   fi
   
   ( cd "$build_dir" && cmake .. -DRK_LIB_PATH="$VLM_LIB_DIR" -DRKLLM_INCLUDE="$RKLLM_INCLUDE" -DRKNN_INCLUDE="$RKNN_INCLUDE" && make -j"$(nproc)" )
-  if [ -f "$dir/VLM_NPU" ] || [ -f "$build_dir/VLM_NPU" ]; then
-    echo "OK: $name -> VLM_NPU"
+  
+  if [ -f "$dir/VLM_NPU" ]; then
+    cp -f "$dir/VLM_NPU" "$WORKSPACE_ROOT/demos/build/${name}_VLM_NPU"
+    echo "OK: $name -> demos/build/${name}_VLM_NPU"
+  elif [ -f "$build_dir/VLM_NPU" ]; then
+    cp -f "$build_dir/VLM_NPU" "$WORKSPACE_ROOT/demos/build/${name}_VLM_NPU"
+    echo "OK: $name -> demos/build/${name}_VLM_NPU"
   else
     echo "WARN: $name build may have failed (VLM_NPU not found)"
   fi

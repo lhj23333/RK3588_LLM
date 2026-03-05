@@ -4,7 +4,8 @@ def parse_rkllm_metrics(output_text: str) -> dict:
     metrics = {
         "peak_memory_gb": 0.0,
         "prefill_tps": 0.0,
-        "generate_tps": 0.0
+        "generate_tps": 0.0,
+        "npu_core_num": 0
     }
     
     # Peak Memory Usage (GB) : 1.89 GB
@@ -35,5 +36,10 @@ def parse_rkllm_metrics(output_text: str) -> dict:
         gen_match = re.search(r"Generate Speed\s*:\s*([\d.]+)\s*token/s", output_text, re.IGNORECASE)
         if gen_match:
             metrics["generate_tps"] = float(gen_match.group(1))
+
+    # npu_core_num: 3
+    npu_match = re.search(r"npu_core_num\s*:\s*(\d+)", output_text, re.IGNORECASE)
+    if npu_match:
+        metrics["npu_core_num"] = int(npu_match.group(1))
             
     return metrics
