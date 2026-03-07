@@ -1,14 +1,14 @@
 import os
 import subprocess
 import time
-from benchmark.profiler.memory_tracker import RK3588MemoryTracker
+from benchmark.profiler.memory_tracker import ProcessDRAMTracker
 
 class BaseEngine:
     def __init__(self, config, workspace_root: str):
         self.config = config
         self.workspace_root = workspace_root
         self.env = os.environ.copy()
-        self.tracker = RK3588MemoryTracker()
+        self.tracker = ProcessDRAMTracker()
         
         # Setup LD_LIBRARY_PATH based on project structure
         rkllm_api = os.path.join(workspace_root, "third_party", "rknn-llm", "rkllm-runtime", "Linux", "librkllm_api", "aarch64")
@@ -16,6 +16,8 @@ class BaseEngine:
         
         current_ld = self.env.get("LD_LIBRARY_PATH", "")
         self.env["LD_LIBRARY_PATH"] = f"{rknn_api}:{rkllm_api}:{current_ld}"
+        
+        # 保持级别为 1，确保底层 parser 仍能抓取 TPS 数据，但我们在上层使用精确的 DRAM 追踪
         self.env["RKLLM_LOG_LEVEL"] = "1"
 
     def _build_cmd(self, **kwargs):
@@ -23,12 +25,6 @@ class BaseEngine:
 
     def run(self, prompt: str, timeout: int = 300, **kwargs):
         cmd = self._build_cmd(**kwargs)
-        
-        # [T0 Stage] Clear caches and get baseline memory
-        self.tracker.clear_caches()
-        time.sleep(1.0) # Let system settle
-        mem_base = self.tracker.get_system_used_memory_mb()
-        print(f"[Profiler] Base Memory: {mem_base:.2f} MB")
         
         start_time = time.time()
         process = None
@@ -43,6 +39,9 @@ class BaseEngine:
                 cwd=self.workspace_root,
                 bufsize=0
             )
+            
+            # 绑定 DRAM 追踪器到该进程 PID
+            self.tracker.set_pid(process.pid)
             
             output_bytes = bytearray()
             found_ready = False
@@ -70,35 +69,40 @@ class BaseEngine:
                 out_str = output_bytes.decode('utf-8', errors='replace')
                 return False, f"Crash/Error: Did not find ready prompt.\nOutput: {out_str}", duration, {}
                 
-            # [T1 Stage] Model loaded, no KV-Cache yet
+            # [T1 Stage] Model loaded, KV-Cache pre-allocated completely
             time.sleep(0.5) # Let memory stabilize
-            mem_loaded = self.tracker.get_system_used_memory_mb()
-            model_data_mb = max(0, mem_loaded - mem_base)
-            print(f"[Profiler] Model Data Memory: {model_data_mb:.2f} MB")
             
-            # [T2 Stage] Start tracking peak memory for dynamic KV-Cache overhead
-            self.tracker.start_tracking()
+            # 此时 RKLLM 已经完成了模型的 load 并且根据 context len 预分配了完整的 KV-Cache DRAM
+            init_dram_mb = self.tracker.get_process_dram_mb()
+            print(f"[Profiler] Init DRAM (Weights + KV-Cache): {init_dram_mb:.2f} MB")
             
             # The demo apps expect questions on stdin, separated by newlines, and "exit" to quit
             input_data = f"{prompt}\nexit\n".encode('utf-8')
             output_remainder, _ = process.communicate(input=input_data, timeout=timeout)
-            
-            # [End] Stop tracking and calculate KV cache overhead
-            mem_peak = self.tracker.stop_tracking()
-            kv_cache_mb = max(0, mem_peak - mem_loaded)
-            total_peak_mb = max(0, mem_peak - mem_base)
-            
-            print(f"[Profiler] KV-Cache Overhead: {kv_cache_mb:.2f} MB | Total Peak: {total_peak_mb:.2f} MB")
             
             duration = time.time() - start_time
             
             full_output = output_bytes + (output_remainder or b"")
             out_str = full_output.decode('utf-8', errors='replace')
             
+            # Parse metrics early to get the real peak memory
+            from benchmark.parser import parse_rkllm_metrics
+            parsed_metrics = parse_rkllm_metrics(out_str)
+            
+            # Use parsed VmHWM if available, otherwise fallback to current RSS
+            if parsed_metrics.get("peak_memory_gb", 0.0) > 0:
+                total_peak_mb = parsed_metrics["peak_memory_gb"] * 1024.0
+            else:
+                total_peak_mb = init_dram_mb # Fallback
+                
+            runtime_buffer_mb = max(0.0, total_peak_mb - init_dram_mb)
+            
+            print(f"[Profiler] Runtime Buffer: {runtime_buffer_mb:.2f} MB | Total Peak DRAM (VmHWM): {total_peak_mb:.2f} MB")
+            
             mem_metrics = {
-                "model_data_mb": model_data_mb,
-                "kv_cache_overhead_mb": kv_cache_mb,
-                "total_peak_mb": total_peak_mb
+                "model_data_mb": init_dram_mb,              # Mapped to Init DRAM
+                "kv_cache_overhead_mb": runtime_buffer_mb,  # Mapped to Runtime Buffer
+                "total_peak_mb": total_peak_mb              # Mapped to Total Peak (VmHWM)
             }
             
             if process.returncode != 0:
@@ -109,8 +113,6 @@ class BaseEngine:
         except subprocess.TimeoutExpired:
             if process is not None:
                 process.kill()
-            self.tracker.stop_tracking()
             return False, f"Timeout after {timeout} seconds", time.time() - start_time, {}
         except Exception as e:
-            self.tracker.stop_tracking()
             return False, f"Exception: {str(e)}", time.time() - start_time, {}

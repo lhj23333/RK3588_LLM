@@ -1,209 +1,144 @@
 # RK3588 LLM & VLM Workspace
 
-Run text-only LLMs and vision-language models (VLMs) on **RK3588 (8GB RAM)** using the Rockchip RKLLM runtime. This repo provides the project layout, scripts, and on-board benchmark results with step-by-step reproduction instructions.
+本仓库旨在探索与记录在 **Rockchip RK3588 (8GB 内存)** 平台上，利用 RKLLM 与 RKNN 运行时部署纯文本大语言模型 (LLM) 和视觉语言多模态大模型 (VLM) 的完整流程。项目中包含了底层的 C++ 推理 Demo，模型导出转换工具，以及自动化的 Benchmark 性能评估框架。
 
 ---
 
-## Project structure
+## 1. 项目结构 (Project Structure)
 
-```
+```text
 rk3588_llm_workspace/
-├── README.md                 # This file (English)
-├── .gitignore                # Ignores models/, build/
-├── .gitmodules               # Submodule definitions
-├── demos/                    # Text LLM demo (CMake + C++)
-│   └── build/                # text_llm_demo binary (generated)
-├── docs/                     # Detailed guides (Chinese)
-│   ├── 01_environment_setup.md
-│   ├── 02_dependencies.md
-│   ├── 03_model_acquisition.md
-│   ├── 04_run_text_llm.md
-│   ├── 05_run_multimodal_vlm.md
-│   ├── 06_benchmark_guide.md
-│   └── 07_feasibility_report.md
-├── models/                   # Put .rkllm / .rknn here (not in repo; see docs)
-├── results/                  # Benchmark logs and summary
-│   ├── benchmark_log.md      # Full benchmark table (source of truth)
-│   ├── FINAL_REPORT.md       # Feasibility and summary
-│   └── vlm_*.log             # Per-VLM run logs
-├── scripts/
-│   ├── converter/
-│   │   ├── README_model_converter.md
-│   │   └── model_converter.py
-│   ├── llm/
-│   │   └── build_text_llm_demo.sh
-│   ├── vlm/
-│   │   └── build_all_vlm.sh
-│   ├── fix_freq_rk3588.sh    # Lock CPU/NPU/DDR to max perf (required before benchmarks)
-│   └── monitor_perf.sh       # Hardware performance monitor
-└── third_party/              # Git submodules
-    ├── rknn-llm              # Rockchip RKLLM SDK (runtime + headers)
-    ├── InternVL3.5-1B-NPU    # Qengineering VLM demo
-    ├── InternVL3.5-2B-NPU
-    ├── InternVL3.5-4B-NPU
-    ├── Qwen3-VL-2B-NPU
-    └── Qwen3-VL-4B-NPU
+├── README.md                 # 项目介绍与快速开始指南
+├── run_benchmark.py          # 自动化性能测试的主入口脚本
+├── benchmark/                # Python 编写的 Benchmark 调度、测试与内存统计引擎
+├── conf/
+│   └── models_config.yaml    # Benchmark 所用的模型测试用例配置文件
+├── demos/                    # 纯 C++ 的 LLM/VLM 推理 Demo 源码与编译产物
+│   └── build/                # 存放编译好的各种 Demo 可执行文件
+├── docs/                     # 核心文档与技术细节指引
+│   ├── benchmark_guide.md    # 自动化跑分框架使用说明
+│   ├── dependencies.md       # 系统级极简部署与底层 `.so` 库依赖分析
+│   ├── export.md             # 模型转换与导出说明
+│   └── final_report.md       # 最终生成的性能、显存综合报告 (含 OOM 分析)
+├── export/                   # 模型转换工具包 (HuggingFace -> RKLLM/RKNN)
+│   ├── rkllm/                # 文本模型转换脚本
+│   └── vlm/                  # 视觉语言模型转换脚本
+├── models/                   # 用户放置转换后权重文件 (.rkllm / .rknn) 的目录
+├── results/                  # 测试结果生成输出目录
+│   └── benchmark_report.md   # 自动生成的 Benchmark 分数表
+├── scripts/                  # 辅助 Shell 脚本
+│   ├── build_text_llm_demo.sh # 编译文本 LLM C++ Demo
+│   ├── build_vlm_demo.sh      # 编译多模态 VLM C++ Demo
+│   └── fix_freq_rk3588.sh     # 锁定 CPU/NPU 高性能模式 (测试前必跑)
+└── third_party/              # Git 外部依赖子模块 (RKLLM SDK 与 VLM 源码)
+    ├── rknn-llm              
+    └── (InternVL / Qwen-VL NPU Repos)
 ```
 
-- **Text LLM**: built under `demos/build/`; uses `third_party/rknn-llm` for `librkllmrt.so`.
-- **VLM**: each `third_party/*-NPU` repo is built in-place and produces `VLM_NPU`; models live in workspace `models/` (see [Model acquisition](#4-model-acquisition)).
+---
+
+## 2. 硬件测试环境 (Test Environment)
+
+*   **设备 (Board)**: Rockchip RK3588 开发板
+*   **物理内存 (RAM)**: 8 GB LPDDR4x/5
+*   **操作系统 (OS)**: Ubuntu 20.04 (aarch64) 或兼容 Linux 
+*   **核心算力**: 6.0 TOPS (NPU 三核并发)
+*   **性能保障**: 执行测试前必须通过 `sudo bash scripts/fix_freq_rk3588.sh` 将设备锁定为最高性能定频模式。
 
 ---
 
-## Test environment
+## 3. 测试结果快速预览 (Benchmark Preview)
 
-- **Board**: RK3588, **8 GB RAM**
-- **OS**: Ubuntu/Debian (Linux aarch64)
-- **Runtime**: rkllm-runtime 1.2.3, rknpu driver 0.9.8
-- **Performance**: CPU/NPU/GPU/DDR set to performance mode via `scripts/fix_freq_rk3588.sh` before every run (required for stable TPS).
+以下数据来源于 `run_benchmark.py` 在 RK3588 (8GB) 真实开发板上的运行结果，摘录了 3核心 NPU 多核调度下的最佳性能。
 
----
+*注：受限于 8GB 物理内存，目前安全运行上限在 **4B 参数级别**，7B及以上模型均存在 OOM。详细内容与单核对比分析请查阅 [docs/final_report.md](docs/final_report.md)*。
 
-## Benchmark results
+### 3.1 纯文本大模型 (Text-only LLM)
 
-All numbers are from on-board runs with `RKLLM_LOG_LEVEL=1`. Peak memory = DRAM; TPS = Generate-phase tokens per second.
+| 模型名称 (Model) | 显存初始占用 (Weights+KV) | 运行峰值显存 (Peak DRAM) | 生成速度 (Generate TPS) |
+| :--- | :--- | :--- | :--- |
+| **Qwen3-0.6B** | ~1.23 GB | ~1.24 GB | **26.78** tokens/s |
+| **Qwen3-1B**   | ~1.52 GB | ~1.53 GB | **17.65** tokens/s |
+| **Qwen2-1.5B** | ~1.76 GB | ~1.77 GB | **14.11** tokens/s |
+| **Qwen3-4B**   | ~4.71 GB | ~4.72 GB | **6.29** tokens/s |
 
-### Text-only LLM (3 NPU cores, W8A8)
+### 3.2 视觉语言大模型 (Vision-Language VLM)
 
-| Model   | Size | Peak DRAM (GB) | First-token (s) | Throughput (TPS) | Note   |
-|--------|------|----------------|-----------------|------------------|--------|
-| Qwen3  | 0.6B | 1.24           | ~0.20           | 11.83            | Stable |
-| Qwen3  | 1.7B | 2.25           | ~0.15           | 8.93             | Stable |
-| Qwen3  | 4B   | 4.53           | ~0.43           | 4.65             | Stable |
-| Qwen3  | 8B   | —              | —               | —                | Not tested (OOM on 8GB) |
-
-### Vision-language model (3 NPU cores, W8A8)
-
-| Model        | Size | Peak DRAM (GB) | Prefill (s) | Throughput (TPS) | Note   |
-|-------------|------|----------------|-------------|------------------|--------|
-| Qwen3-VL   | 2B   | 3.26           | ~0.18       | 10.01            | Stable |
-| Qwen3-VL   | 4B   | 5.44           | ~0.37       | 4.86             | Stable |
-| InternVL3.5| 1B   | 1.89           | ~0.11       | 21.08            | Stable |
-| InternVL3.5| 2B   | 2.95           | ~0.19       | 9.76             | Stable |
-| InternVL3.5| 4B   | 5.27           | ~0.37       | 4.89             | Stable |
-
-Raw logs: `results/vlm_<demo_name>.log`. Full table and failure notes: [results/benchmark_log.md](results/benchmark_log.md).
+| 模型名称 (Model) | 显存初始占用 (Weights+KV) | 运行峰值显存 (Peak DRAM) | 生成速度 (Generate TPS) |
+| :--- | :--- | :--- | :--- |
+| **InternVL3.5-1B** | ~1.84 GB | ~1.89 GB | **27.39** tokens/s |
+| **Qwen3-VL-2B**    | ~2.28 GB | ~3.13 GB | **13.17** tokens/s |
+| **InternVL3.5-2B** | ~2.93 GB | ~2.95 GB | **12.79** tokens/s |
+| **InternVL3.5-4B** | ~4.56 GB | ~5.27 GB | **6.33** tokens/s |
+| **Qwen3-VL-4B**    | ~4.56 GB | ~5.44 GB | **6.30** tokens/s |
 
 ---
 
-## Reproduction steps
+## 4. 快速开始 (Quick Start)
 
-### 1. Clone and submodules
-
+### 第一步：克隆仓库与拉取子模块
+由于依赖 Rockchip 的 SDK 和第三方代码，请务必递归克隆：
 ```bash
-git clone --recurse-submodules https://github.com/lhj23333/RK3588_LLM.git
+git clone --recurse-submodules <repository_url> RK3588_LLM
 cd RK3588_LLM
 ```
+*(如果已经 clone 但忘记加参数，可执行：`git submodule update --init --recursive`)*
 
-If already cloned without submodules:
-
-```bash
-git submodule update --init --recursive
-```
-
-### 2. System dependencies (on RK3588)
-
+### 第二步：安装基础依赖并设置环境变量
+确保拥有 C++ 构建环境与 OpenCV (VLM 必须)：
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake libopencv-dev
 ```
-
-### 3. RKLLM / RKNN runtime libraries
-
-Use the libraries from the repo (no need to copy to `/usr` if you set `LD_LIBRARY_PATH` as below).
-
-- **LLM**: `third_party/rknn-llm/rkllm-runtime/Linux/librkllm_api/aarch64/librkllmrt.so`
-- **VLM vision encoder**: `third_party/rknn-llm/examples/multimodal_model_demo/deploy/3rdparty/librknnrt/Linux/librknn_api/aarch64/librknnrt.so`
-
-Optional (for system-wide use):
-
-```bash
-sudo cp third_party/rknn-llm/rkllm-runtime/Linux/librkllm_api/aarch64/librkllmrt.so /usr/lib/
-sudo cp third_party/rknn-llm/examples/multimodal_model_demo/deploy/3rdparty/librknnrt/Linux/librknn_api/aarch64/librknnrt.so /usr/lib/
-sudo ldconfig
-```
-
-### 4. Model acquisition
-
-Create `models/` in the workspace root. **Do not** convert models on the board (risk of OOM). Download pre-converted `.rkllm` / `.rknn` and place them in `models/`:
-
-- **Text LLM**: Qwen3-0.6B, 1.7B, 4B (`.rkllm` only). Links and naming: [docs/03_model_acquisition.md](docs/03_model_acquisition.md).
-- **VLM**: For each VLM you need the corresponding `.rkllm` + `.rknn` (e.g. `qwen3-vl-2b-instruct_w8a8_rk3588.rkllm` + `qwen3-vl-2b_vision_672_rk3588.rknn`). Same doc lists all download links and target filenames.
-
-The new `run_benchmark.py` framework expects models to be configured in `conf/models_config.yaml`.
-
-### 5. Performance mode (required before benchmarks)
-
-On the RK3588, run before each benchmarking session (and after reboot):
-
-```bash
-sudo bash scripts/fix_freq_rk3588.sh
-```
-
-### 6. Build
-
-**Text LLM demo:**
-
-```bash
-bash scripts/llm/build_text_llm_demo.sh
-# Binary: demos/build/text_llm_demo
-```
-
-**All VLM demos:**
-
-```bash
-bash scripts/vlm/build_all_vlm.sh
-# Builds InternVL3.5-1B/2B/4B-NPU and Qwen3-VL-2B/4B-NPU; each has VLM_NPU in its directory or build/
-```
-
-### 7. Run text LLM
-
+本框架自动接管 Python 环境库链接，但如果您需要单独运行二进制，可执行：
 ```bash
 export LD_LIBRARY_PATH="third_party/rknn-llm/rkllm-runtime/Linux/librkllm_api/aarch64:$LD_LIBRARY_PATH"
-export RKLLM_LOG_LEVEL=1
-
-./demos/build/text_llm_demo models/Qwen3-0.6B-rk3588-w8a8-opt-1-hybrid-ratio-0.0.rkllm 512 4096
 ```
 
-Replace the model path for 1.7B/4B as in [docs/04_run_text_llm.md](docs/04_run_text_llm.md). Type `exit` to quit.
+### 第三步：编译 C++ 推理 Demo
+构建纯文本 LLM 推理程序：
+```bash
+bash scripts/llm/build_text_llm_demo.sh
+# 产物输出于: demos/build/text_llm_demo
+```
+构建视觉语言 VLM 程序：
+```bash
+bash scripts/vlm/build_vlm_demo.sh all
+# 产物输出于: demos/build/*_VLM_NPU
+```
 
-### 8. Run Benchmarks (Automated Framework)
+### 第四步：准备模型
+请勿在 8GB 的板端直接转换模型（必 OOM）。请在 PC 上完成转换，或下载已转换的 `.rkllm` / `.rknn` 文件，并将它们统一放入项目根目录下的 `models/` 文件夹中。
 
-We have introduced a unified Python benchmark framework to simplify testing and memory profiling.
+### 第五步：运行自动化基准测试 (Benchmark)
+**这是本项目最核心的入口！**
+它会自动开启定频模式，加载 YAML 配置，拉起对应的底层 C++ 程序进行压力测试与内存探测：
 
 ```bash
-# Ensure performance mode is active
-sudo bash scripts/fix_freq_rk3588.sh
-
-# Run all configured models
+# 启动所有模型的一键测试
 sudo python3 run_benchmark.py --model all
 
-# Or run a specific model
-sudo python3 run_benchmark.py --model qwen3-0.6b-text
+# 或者只测试指定的几个模型
+sudo python3 run_benchmark.py --model qwen3-0.6b-text internvl3.5-1b-npu
 ```
-
-Logs and memory metrics (static model RAM + dynamic KV-Cache) will be automatically parsed and saved to `results/benchmark_report.md`.
-
----
-
-## Doc index
-
-| Doc | Content |
-|-----|---------|
-| [docs/01_environment_setup.md](docs/01_environment_setup.md) | Environment, performance mode, RKLLM deployment |
-| [docs/02_dependencies.md](docs/02_dependencies.md) | Dependencies and verification |
-| [docs/03_model_acquisition.md](docs/03_model_acquisition.md) | Model download links and `models/` layout |
-| [docs/04_run_text_llm.md](docs/04_run_text_llm.md) | Text LLM build and run |
-| [docs/05_run_multimodal_vlm.md](docs/05_run_multimodal_vlm.md) | VLM build and run |
-| [docs/06_benchmark_guide.md](docs/06_benchmark_guide.md) | How to run and record benchmarks |
-| [docs/07_feasibility_report.md](docs/07_feasibility_report.md) | Feasibility (which models run / OOM) |
-| [results/benchmark_log.md](results/benchmark_log.md) | Full benchmark table and failure notes |
-| [results/FINAL_REPORT.md](results/FINAL_REPORT.md) | Summary and conclusions |
+跑分完成后，报告将自动保存在 `results/benchmark_report.md` 中。
 
 ---
 
-## License and references
+## 5. 核心文档指引 (Documentation Index)
 
-- RKLLM / rknn-llm: Rockchip SDK ([third_party/rknn-llm](third_party/rknn-llm)).
-- VLM demos: [Qengineering](https://github.com/Qengineering) (InternVL3.5-*‑NPU, Qwen3-VL-*‑NPU), used as git submodules.
-- Pre-converted model sources: see [docs/03_model_acquisition.md](docs/03_model_acquisition.md) (Hugging Face, Qengineering, etc.).
+如果您需要进行深度定制或遇到问题，请查阅 `docs/` 目录下的详细指南：
+
+| 文档名称 | 详细说明 |
+| :--- | :--- |
+| 📖 [**benchmark_guide.md**](docs/benchmark_guide.md) | **基准测试指南**。教你如何修改配置 `models_config.yaml`，添加自定义模型到测试队列，以及排查自动化测试失败的问题。 |
+| 🗜️ [**dependencies.md**](docs/dependencies.md) | **底层系统依赖剖析**。极其详细地记录了 C++ 链接库 (.so) 与系统要求。如果您想在 **无 OS (裸机)** 或精简 Docker 中运行模型，请看这里。 |
+| 📊 [**final_report.md**](docs/final_report.md) | **最终跑分大报告**。详细归纳了所有单核/多核 NPU 性能数据，并包含了几十个 7B/14B 大模型的内存溢出 (OOM) 失败情况分析。 |
+| 🔄 [**export.md**](docs/export.md) | **模型转换导出**。*(如果文档存在)* 教您如何在 PC 端环境利用深度学习框架将 HuggingFace 模型转换为 RKNN/RKLLM 格式。 |
+
+---
+
+## 声明 (License & Disclaimer)
+
+*   底层的 `librkllmrt.so` 和 `librknnrt.so` 闭源组件版权及使用许可归 Rockchip 所有。
+*   本项目仅用于在 RK3588 平台进行大语言模型推理性能的基准测试、研究与学习交流。

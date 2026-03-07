@@ -8,8 +8,10 @@ def parse_rkllm_metrics(output_text: str) -> dict:
         "npu_core_num": 0
     }
     
-    # Peak Memory Usage (GB) : 1.89 GB
-    mem_match = re.search(r"Peak Memory Usage.*?:\s*([\d.]+)", output_text, re.IGNORECASE)
+    # Peak Memory Usage (GB) 
+    # 4.72
+    # This handles both the older format with colon and the newer multi-line format
+    mem_match = re.search(r"Peak Memory Usage.*?\(GB\)[^\d]+([\d.]+)", output_text, re.IGNORECASE)
     if mem_match:
         metrics["peak_memory_gb"] = float(mem_match.group(1))
         

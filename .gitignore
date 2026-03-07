@@ -12,10 +12,7 @@ llm_env/
 third_party/*
 
 # 日志
-# logs/
+logs/
 
 # 结果
-# results/
-
-archive/
-AGENTS.md
+results/

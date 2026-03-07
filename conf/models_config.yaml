@@ -24,21 +24,21 @@ models:
   qwen3-0.6b-text:
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/Qwen3-0.6B-rk3588-w8a8-opt-0-hybrid-ratio-0.0.rkllm"
+    model_path: "models/Qwen3-0.6B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
     max_context_len: 4096
   
-  qwen3-1.7b-text:
+  qwen3-1b-text:
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/Qwen3-1.7B-w8a8-rk3588.rkllm"
+    model_path: "models/Qwen3-1B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
     max_context_len: 4096
 
   qwen3-4b-text:
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/Qwen3-4B-rk3588-w8a8-opt-0-hybrid-ratio-0.0.rkllm"
+    model_path: "models/Qwen3-4B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
     max_context_len: 4096
 
