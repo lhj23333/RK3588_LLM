@@ -76,39 +76,39 @@ models:
   internvl3.5-1b-npu:
     type: "vlm"
     binary_path: "demos/build/InternVL3.5-1B-NPU_VLM_NPU"
-    vision_model_path: "models/internvl3_5-1b_vision_rk3588.rknn"
-    llm_model_path: "models/internvl3_5-1b-instruct_w8a8_rk3588.rkllm"
+    vision_model_path: "models/internvl3.5_vision_rk3588.rknn"
+    llm_model_path: "models/Intervl3.5-1B.rkllm"
     max_new_tokens: 2048
     max_context_len: 4096
 
   internvl3.5-2b-npu:
     type: "vlm"
     binary_path: "demos/build/InternVL3.5-2B-NPU_VLM_NPU"
-    vision_model_path: "models/internvl3_5-2b_vision_rk3588.rknn"
-    llm_model_path: "models/internvl3_5-2b-instruct_w8a8_rk3588.rkllm"
+    vision_model_path: "models/internvl3.5_vision_rk3588.rknn"
+    llm_model_path: "models/Intervl3.5-2B.rkllm"
     max_new_tokens: 2048
     max_context_len: 4096
 
   internvl3.5-4b-npu:
     type: "vlm"
     binary_path: "demos/build/InternVL3.5-4B-NPU_VLM_NPU"
-    vision_model_path: "models/internvl3_5-4b_vision_rk3588.rknn"
-    llm_model_path: "models/internvl3_5-4b-instruct_w8a8_rk3588.rkllm"
+    vision_model_path: "models/internvl3.5_vision_rk3588.rknn"
+    llm_model_path: "models/Intervl3.5-4B.rkllm"
     max_new_tokens: 2048
     max_context_len: 4096
 
   qwen3-vl-2b-npu:
     type: "vlm"
     binary_path: "demos/build/Qwen3-VL-2B-NPU_VLM_NPU"
-    vision_model_path: "models/qwen3-vl-2b_vision_448_rk3588.rknn"
-    llm_model_path: "models/qwen3-vl-2b-instruct_w8a8_rk3588.rkllm"
+    vision_model_path: "models/qwen3-vl_vision_rk3588.rknn"
+    llm_model_path: "models/qwen3-vl-2B-w8a8-rk3588.rkllm"
     max_new_tokens: 2048
     max_context_len: 4096
 
   qwen3-vl-4b-npu:
     type: "vlm"
     binary_path: "demos/build/Qwen3-VL-4B-NPU_VLM_NPU"
-    vision_model_path: "models/qwen3-vl-4b-instruct_vision_448_rk3588.rknn"
-    llm_model_path: "models/qwen3-vl-4b-instruct_w8a8_rk3588.rkllm"
+    vision_model_path: "models/qwen3-vl_vision_rk3588.rknn"
+    llm_model_path: "models/Qwen3-VL-4B.rkllm"
     max_new_tokens: 2048
     max_context_len: 4096

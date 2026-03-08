@@ -1,6 +1,6 @@
 # RK3588 LLM & VLM Workspace
 
-本仓库旨在探索与记录在 **Rockchip RK3588 (8GB 内存)** 平台上，利用 RKLLM 与 RKNN 运行时部署纯文本大语言模型 (LLM) 和视觉语言多模态大模型 (VLM) 的完整流程。项目中包含了底层的 C++ 推理 Demo，模型导出转换工具，以及自动化的 Benchmark 性能评估框架。
+本仓库旨在探索与记录在 **Rockchip RK3588 (8GB 内存)** 平台上，利用 RKLLM 与 RKNN 运行时部署纯文本大语言模型 (LLM) 和视觉语言多模态大模型 (VLM) 的完整流程。项目中包含了底层的 C++ 推理 Demo，以及自动化的 Benchmark 性能评估框架。
 
 ---
 
@@ -18,11 +18,7 @@ rk3588_llm_workspace/
 ├── docs/                     # 核心文档与技术细节指引
 │   ├── benchmark_guide.md    # 自动化跑分框架使用说明
 │   ├── dependencies.md       # 系统级极简部署与底层 `.so` 库依赖分析
-│   ├── export.md             # 模型转换与导出说明
 │   └── final_report.md       # 最终生成的性能、显存综合报告 (含 OOM 分析)
-├── export/                   # 模型转换工具包 (HuggingFace -> RKLLM/RKNN)
-│   ├── rkllm/                # 文本模型转换脚本
-│   └── vlm/                  # 视觉语言模型转换脚本
 ├── models/                   # 用户放置转换后权重文件 (.rkllm / .rknn) 的目录
 ├── results/                  # 测试结果生成输出目录
 │   └── benchmark_report.md   # 自动生成的 Benchmark 分数表
@@ -49,28 +45,51 @@ rk3588_llm_workspace/
 
 ## 3. 测试结果快速预览 (Benchmark Preview)
 
-以下数据来源于 `run_benchmark.py` 在 RK3588 (8GB) 真实开发板上的运行结果，摘录了 3核心 NPU 多核调度下的最佳性能。
+以下数据来源于 `run_benchmark.py` 在 RK3588 (8GB) 真实开发板上的运行结果，涵盖 **三核 (3-Core)** 与 **单核 (1-Core)** NPU 调度的性能对比。
 
-*注：受限于 8GB 物理内存，目前安全运行上限在 **4B 参数级别**，7B及以上模型均存在 OOM。详细内容与单核对比分析请查阅 [docs/final_report.md](docs/final_report.md)*。
+*注：受限于 8GB 物理内存，目前安全运行上限在 **4B 参数级别**，7B及以上模型均存在 OOM。详细内容与详细分析请查阅 [docs/final_report.md](docs/final_report.md)*。
 
-### 3.1 纯文本大模型 (Text-only LLM)
+### 3.1 多核 NPU 性能 (3-Core)
 
-| 模型名称 (Model) | 显存初始占用 (Weights+KV) | 运行峰值显存 (Peak DRAM) | 生成速度 (Generate TPS) |
-| :--- | :--- | :--- | :--- |
-| **Qwen3-0.6B** | ~1.23 GB | ~1.24 GB | **26.78** tokens/s |
-| **Qwen3-1B**   | ~1.52 GB | ~1.53 GB | **17.65** tokens/s |
-| **Qwen2-1.5B** | ~1.76 GB | ~1.77 GB | **14.11** tokens/s |
-| **Qwen3-4B**   | ~4.71 GB | ~4.72 GB | **6.29** tokens/s |
+#### 纯文本大模型 (Text-only LLM)
 
-### 3.2 视觉语言大模型 (Vision-Language VLM)
+| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :--- | :--- | :--- | :---: |
+| **Qwen2-1.5B** | ~1.76 GB | ~4.8 MB | ~1.77 GB | **14.11** |
+| **Qwen3-0.6B** | ~1.24 GB | ~2.5 MB | ~1.24 GB | **26.78** |
+| **Qwen3-1B**   | ~1.52 GB | ~10.4 MB | ~1.53 GB | **17.65** |
+| **Qwen3-4B**   | ~4.71 GB | ~8.4 MB | ~4.72 GB | **6.29** |
 
-| 模型名称 (Model) | 显存初始占用 (Weights+KV) | 运行峰值显存 (Peak DRAM) | 生成速度 (Generate TPS) |
-| :--- | :--- | :--- | :--- |
-| **InternVL3.5-1B** | ~1.84 GB | ~1.89 GB | **27.39** tokens/s |
-| **Qwen3-VL-2B**    | ~2.28 GB | ~3.13 GB | **13.17** tokens/s |
-| **InternVL3.5-2B** | ~2.93 GB | ~2.95 GB | **12.79** tokens/s |
-| **InternVL3.5-4B** | ~4.56 GB | ~5.27 GB | **6.33** tokens/s |
-| **Qwen3-VL-4B**    | ~4.56 GB | ~5.44 GB | **6.30** tokens/s |
+#### 视觉语言大模型 (Vision-Language VLM)
+
+| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :--- | :--- | :--- | :---: |
+| **InternVL3.5-1B** | ~1.84 GB | ~0.65 GB | ~1.89 GB | **27.39** |
+| **InternVL3.5-2B** | ~2.93 GB | ~0.67 GB | ~2.95 GB | **12.79** |
+| **InternVL3.5-4B** | ~4.56 GB | ~0.70 GB | ~5.27 GB | **6.33** |
+| **Qwen3-VL-2B**    | ~2.28 GB | ~0.85 GB | ~3.13 GB | **13.17** |
+| **Qwen3-VL-4B**    | ~4.56 GB | ~0.88 GB | ~5.44 GB | **6.30** |
+
+### 3.2 单核 NPU 性能 (1-Core)
+
+#### 纯文本大模型 (Text-only LLM)
+
+| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :--- | :--- | :--- | :---: |
+| **Qwen2-1.5B** | ~1.74 GB | ~1.3 MB | ~1.74 GB | **6.42** |
+| **Qwen3-0.6B** | ~1.17 GB | ~4.2 MB | ~1.18 GB | **13.87** |
+| **Qwen3-1B**   | ~1.49 GB | ~6.0 MB | ~1.50 GB | **7.61** |
+| **Qwen3-4B**   | ~4.59 GB | ~7.2 MB | ~4.60 GB | **2.57** |
+
+#### 视觉语言大模型 (Vision-Language VLM)
+
+| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :--- | :--- | :--- | :---: |
+| **InternVL3.5-1B** | ~1.22 GB | ~0.66 GB | ~1.88 GB | **14.28** |
+| **InternVL3.5-2B** | ~2.27 GB | ~0.66 GB | ~2.93 GB | **5.77** |
+| **InternVL3.5-4B** | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.59** |
+| **Qwen3-VL-2B**    | ~2.26 GB | ~0.65 GB | ~2.91 GB | **5.74** |
+| **Qwen3-VL-4B**    | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.58** |
 
 ---
 
@@ -79,11 +98,11 @@ rk3588_llm_workspace/
 ### 第一步：克隆仓库与拉取子模块
 由于依赖 Rockchip 的 SDK 和第三方代码，请务必递归克隆：
 ```bash
-git clone --recurse-submodules <repository_url> RK3588_LLM
+git clone https://github.com/lhj23333/RK3588_LLM.git
 cd RK3588_LLM
-```
-*(如果已经 clone 但忘记加参数，可执行：`git submodule update --init --recursive`)*
 
+git submodule update --init --recursive
+```
 ### 第二步：安装基础依赖并设置环境变量
 确保拥有 C++ 构建环境与 OpenCV (VLM 必须)：
 ```bash
@@ -133,8 +152,7 @@ sudo python3 run_benchmark.py --model qwen3-0.6b-text internvl3.5-1b-npu
 | :--- | :--- |
 | 📖 [**benchmark_guide.md**](docs/benchmark_guide.md) | **基准测试指南**。教你如何修改配置 `models_config.yaml`，添加自定义模型到测试队列，以及排查自动化测试失败的问题。 |
 | 🗜️ [**dependencies.md**](docs/dependencies.md) | **底层系统依赖剖析**。极其详细地记录了 C++ 链接库 (.so) 与系统要求。如果您想在 **无 OS (裸机)** 或精简 Docker 中运行模型，请看这里。 |
-| 📊 [**final_report.md**](docs/final_report.md) | **最终跑分大报告**。详细归纳了所有单核/多核 NPU 性能数据，并包含了几十个 7B/14B 大模型的内存溢出 (OOM) 失败情况分析。 |
-| 🔄 [**export.md**](docs/export.md) | **模型转换导出**。*(如果文档存在)* 教您如何在 PC 端环境利用深度学习框架将 HuggingFace 模型转换为 RKNN/RKLLM 格式。 |
+| 📊 [**final_report.md**](docs/final_report.md) | **跑分大报告**。详细归纳了所有单核/多核 NPU 性能数据，并包含了几十个 7B/14B 大模型的内存溢出 (OOM) 失败情况分析。 |
 
 ---
 
