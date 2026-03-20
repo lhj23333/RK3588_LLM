@@ -18,7 +18,7 @@ fi
 # 从 yaml 键名提取 vlm 模型，假设符合 name-npu 格式，映射到 third_party 目录名 (例如 internvl3.5-1b-npu 映射到 InternVL3.5-1B-NPU)
 # 为了简单，直接手动列出或者从配置文件自动转换。
 # 既然我们已经把二进制改到 demos/build 目录了，这里我们直接从 keys 提取即可
-VLM_NAMES="InternVL3.5-1B-NPU InternVL3.5-2B-NPU InternVL3.5-4B-NPU Qwen3-VL-2B-NPU Qwen3-VL-4B-NPU"
+VLM_NAMES="InternVL3.5-1B-NPU InternVL3.5-2B-NPU InternVL3.5-4B-NPU Qwen3-VL-2B-NPU Qwen3-VL-4B-NPU Qwen2.5-VL-3B-NPU"
 
 
 RKLLM_SO="$WORKSPACE_ROOT/third_party/rknn-llm/rkllm-runtime/Linux/librkllm_api/aarch64/librkllmrt.so"

@@ -1,6 +1,6 @@
 # RK3588 LLM & VLM Workspace
 
-本仓库旨在探索与记录在 **Rockchip RK3588 (8GB 内存)** 平台上，利用 RKLLM 与 RKNN 运行时部署纯文本大语言模型 (LLM) 和视觉语言多模态大模型 (VLM) 的完整流程。项目中包含了底层的 C++ 推理 Demo，以及自动化的 Benchmark 性能评估框架。
+本仓库旨在探索与记录在 **Rockchip RK3588** 平台上，利用 RKLLM 与 RKNN 运行时部署纯文本大语言模型 (LLM) 和视觉语言多模态大模型 (VLM) 的完整流程。项目中包含底层 C++ 推理 Demo 与自动化 Benchmark 框架。
 
 ---
 
@@ -23,9 +23,10 @@ rk3588_llm_workspace/
 ├── results/                  # 测试结果生成输出目录
 │   └── benchmark_report.md   # 自动生成的 Benchmark 分数表
 ├── scripts/                  # 辅助 Shell 脚本
-│   ├── build_text_llm_demo.sh # 编译文本 LLM C++ Demo
-│   ├── build_vlm_demo.sh      # 编译多模态 VLM C++ Demo
-│   └── fix_freq_rk3588.sh     # 锁定 CPU/NPU 高性能模式 (测试前必跑)
+│   ├── llm/build_text_llm_demo.sh  # 编译文本 LLM C++ Demo
+│   ├── vlm/build_vlm_demo.sh       # 编译多模态 VLM C++ Demo
+│   ├── fix_freq_rk3588.sh          # 锁定 CPU/DDR/NPU/GPU 高性能模式（测试前建议执行）
+│   └── monitor_perf.sh             # 可选性能监控辅助脚本
 └── third_party/              # Git 外部依赖子模块 (RKLLM SDK 与 VLM 源码)
     ├── rknn-llm              
     └── (InternVL / Qwen-VL NPU Repos)
@@ -35,61 +36,86 @@ rk3588_llm_workspace/
 
 ## 2. 硬件测试环境 (Test Environment)
 
-*   **设备 (Board)**: Rockchip RK3588 开发板
-*   **物理内存 (RAM)**: 8 GB LPDDR4x/5
-*   **操作系统 (OS)**: Ubuntu 20.04 (aarch64) 或兼容 Linux 
-*   **核心算力**: 6.0 TOPS (NPU 三核并发)
-*   **性能保障**: 执行测试前必须通过 `sudo bash scripts/fix_freq_rk3588.sh` 将设备锁定为最高性能定频模式。
+*   **设备 (Board)**: Rockchip **RK3588** 开发板
+*   **物理内存 (RAM)**: **16 GB** LDDR5x
+*   **操作系统 (OS)**: **Debian GNU/Linux 12 (bookworm)**，aarch64
+*   **内核**: Linux **6.1.84-8-rk2410**
+*   **核心算力**: NPU **6.0 TOPS**（NPU 三核并发）
+*   **性能保障**: 执行测试前建议运行 `sudo bash scripts/fix_freq_rk3588.sh`，将 CPU、DDR、NPU、GPU 置于 `performance` governor。
 
 ---
 
 ## 3. 测试结果快速预览 (Benchmark Preview)
 
-以下数据来源于 `run_benchmark.py` 在 RK3588 (8GB) 真实开发板上的运行结果，涵盖 **三核 (3-Core)** 与 **单核 (1-Core)** NPU 调度的性能对比。
-
-*注：受限于 8GB 物理内存，目前安全运行上限在 **4B 参数级别**，7B及以上模型均存在 OOM。详细内容与详细分析请查阅 [docs/final_report.md](docs/final_report.md)*。
+以下数据来源于 `run_benchmark.py` 在 **上述 RK3588（16GB）** 环境上的运行结果，涵盖 **三核 (3-Core)** 与 **单核 (1-Core)** NPU 调度的性能对比。完整表格与说明见 [docs/final_report.md](docs/final_report.md) 与 [results/benchmark_report.md](results/benchmark_report.md)。
 
 ### 3.1 多核 NPU 性能 (3-Core)
 
 #### 纯文本大模型 (Text-only LLM)
 
-| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
-| :--- | :--- | :--- | :--- | :---: |
-| **Qwen2-1.5B** | ~1.76 GB | ~4.8 MB | ~1.77 GB | **14.11** |
-| **Qwen3-0.6B** | ~1.24 GB | ~2.5 MB | ~1.24 GB | **26.78** |
-| **Qwen3-1B**   | ~1.52 GB | ~10.4 MB | ~1.53 GB | **17.65** |
-| **Qwen3-4B**   | ~4.71 GB | ~8.4 MB | ~4.72 GB | **6.29** |
+| 模型名称 (Model) | Context | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :---: | :--- | :--- | :--- | :---: |
+| **Qwen1.5-7B** | 4096 | ~7.94 GB | ~10 MB | ~7.95 GB | **3.81** |
+| **Qwen1.5-14B** | 4096 | ~14.76 GB | ~128 MB | ~14.83 GB | **2.04** |
+| **Qwen2-1.5B** | 4096 | ~1.76 GB | ~4.8 MB | ~1.77 GB | **14.11** |
+| **Qwen2-7B** | 4096 | ~7.04 GB | ~9 MB | ~7.05 GB | **4.05** |
+| **Qwen2.5-7B** | 4096 | ~7.04 GB | ~19 MB | ~7.06 GB | **4.07** |
+| **Qwen3-0.6B** | 4096 | ~1.24 GB | ~2.5 MB | ~1.24 GB | **26.78** |
+| **Qwen3-1B**   | 4096 | ~1.52 GB | ~10.4 MB | ~1.53 GB | **17.65** |
+| **Qwen3-4B**   | 4096 | ~4.71 GB | ~8.4 MB | ~4.72 GB | **6.29** |
+| **Qwen3-8B** | 4096 | ~7.67 GB | ~9 MB | ~7.68 GB | **3.77** |
+| **Qwen3-14B** | 4096 | ~14.78 GB | ~125 MB | ~14.85 GB | **2.01** |
+| **Llama2-7B** | 4096 | ~7.32 GB | ~10 MB | ~7.33 GB | **3.93** |
+| **Llama2-13B** | 4096 | ~14.65 GB | ~90 MB | ~14.70 GB | **2.09** |
+| **Llama3-8B** | 4096 | ~7.57 GB | ~12 MB | ~7.57 GB | **3.80** |
+| **InternLM2-7B** | 4096 | ~7.35 GB | ~13 MB | ~7.36 GB | **3.82** |
 
 #### 视觉语言大模型 (Vision-Language VLM)
 
-| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
-| :--- | :--- | :--- | :--- | :---: |
-| **InternVL3.5-1B** | ~1.84 GB | ~0.65 GB | ~1.89 GB | **27.39** |
-| **InternVL3.5-2B** | ~2.93 GB | ~0.67 GB | ~2.95 GB | **12.79** |
-| **InternVL3.5-4B** | ~4.56 GB | ~0.70 GB | ~5.27 GB | **6.33** |
-| **Qwen3-VL-2B**    | ~2.28 GB | ~0.85 GB | ~3.13 GB | **13.17** |
-| **Qwen3-VL-4B**    | ~4.56 GB | ~0.88 GB | ~5.44 GB | **6.30** |
+| 模型名称 (Model) | Context | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :---: | :--- | :--- | :--- | :---: |
+| **Qwen3-VL-8B** | 4096 | ~7.71 GB | ~0.94 GB | ~8.65 GB | **3.61** |
+| **Qwen3-VL-2B**    | 4096 | ~2.28 GB | ~0.85 GB | ~3.13 GB | **13.17** |
+| **Qwen3-VL-4B**    | 4096 | ~4.56 GB | ~0.88 GB | ~5.44 GB | **6.30** |
+| **Qwen2.5-VL-7B** | 4096 | ~7.08 GB | ~1.51 GB | ~8.58 GB | **3.90** |
+| **InternVL3.5-1B** | 4096 | ~1.84 GB | ~0.65 GB | ~1.89 GB | **27.39** |
+| **InternVL3.5-2B** | 4096 | ~2.93 GB | ~0.67 GB | ~2.95 GB | **12.79** |
+| **InternVL3.5-4B** | 4096 | ~4.56 GB | ~0.70 GB | ~5.27 GB | **6.33** |
+| **InternVL3.5-8B** | 4096 | ~7.50 GB | ~0.88 GB | ~8.40 GB | **3.56** |
 
 ### 3.2 单核 NPU 性能 (1-Core)
 
 #### 纯文本大模型 (Text-only LLM)
 
-| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
-| :--- | :--- | :--- | :--- | :---: |
-| **Qwen2-1.5B** | ~1.74 GB | ~1.3 MB | ~1.74 GB | **6.42** |
-| **Qwen3-0.6B** | ~1.17 GB | ~4.2 MB | ~1.18 GB | **13.87** |
-| **Qwen3-1B**   | ~1.49 GB | ~6.0 MB | ~1.50 GB | **7.61** |
-| **Qwen3-4B**   | ~4.59 GB | ~7.2 MB | ~4.60 GB | **2.57** |
+| 模型名称 (Model) | Context | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :---: | :--- | :--- | :--- | :---: |
+| **Qwen1.5-7B** | 4096 | ~7.90 GB | ~14 MB | ~7.91 GB | **1.49** |
+| **Qwen1.5-14B** | 4096 | ~14.80 GB | ~133 MB | ~14.87 GB | **0.80** |
+| **Qwen2-1.5B** | 4096 | ~1.74 GB | ~1.3 MB | ~1.74 GB | **6.42** |
+| **Qwen2-7B** | 4096 | ~6.99 GB | ~15 MB | ~7.00 GB | **1.52** |
+| **Qwen2.5-7B** | 4096 | ~6.99 GB | ~16 MB | ~7.00 GB | **1.53** |
+| **Qwen3-0.6B** | 4096 | ~1.17 GB | ~4.2 MB | ~1.18 GB | **13.87** |
+| **Qwen3-1B**   | 4096 | ~1.49 GB | ~6.0 MB | ~1.50 GB | **7.61** |
+| **Qwen3-4B**   | 4096 | ~4.59 GB | ~7.2 MB | ~4.60 GB | **2.57** |
+| **Qwen3-8B** | 4096 | ~7.62 GB | ~11 MB | ~7.63 GB | **1.42** |
+| **Qwen3-14B** | 4096 | ~14.81 GB | ~132 MB | ~14.89 GB | **0.76** |
+| **Llama2-7B** | 4096 | ~7.28 GB | ~14 MB | ~7.29 GB | **1.59** |
+| **Llama2-13B** | 4096 | ~14.65 GB | ~84 MB | ~14.71 GB | **0.82** |
+| **Llama3-8B** | 4096 | ~7.52 GB | ~15 MB | ~7.53 GB | **1.44** |
+| **InternLM2-7B** | 4096 | ~7.30 GB | ~11 MB | ~7.31 GB | **1.46** |
 
 #### 视觉语言大模型 (Vision-Language VLM)
 
-| 模型名称 (Model) | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
-| :--- | :--- | :--- | :--- | :---: |
-| **InternVL3.5-1B** | ~1.22 GB | ~0.66 GB | ~1.88 GB | **14.28** |
-| **InternVL3.5-2B** | ~2.27 GB | ~0.66 GB | ~2.93 GB | **5.77** |
-| **InternVL3.5-4B** | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.59** |
-| **Qwen3-VL-2B**    | ~2.26 GB | ~0.65 GB | ~2.91 GB | **5.74** |
-| **Qwen3-VL-4B**    | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.58** |
+| 模型名称 (Model) | Context | 初始显存 (Weights+KV) | Runtime Buffer | 峰值显存 (Peak DRAM) | 生成速度 (TPS) |
+| :--- | :---: | :--- | :--- | :--- | :---: |
+| **Qwen3-VL-2B**    | 4096 | ~2.26 GB | ~0.65 GB | ~2.91 GB | **5.74** |
+| **Qwen3-VL-4B**    | 4096 | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.58** |
+| **Qwen3-VL-8B** | 4096 | ~7.65 GB | ~0.96 GB | ~8.61 GB | **1.42** |
+| **InternVL3.5-1B** | 4096 | ~1.22 GB | ~0.66 GB | ~1.88 GB | **14.28** |
+| **InternVL3.5-2B** | 4096 | ~2.27 GB | ~0.66 GB | ~2.93 GB | **5.77** |
+| **InternVL3.5-4B** | 4096 | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.59** |
+| **InternVL3.5-8B** | 4096 | ~7.44 GB | ~0.90 GB | ~8.32 GB | **1.46** |
+| **Qwen2.5-VL-7B** | 4096 | ~7.02 GB | ~1.50 GB | ~8.52 GB | **1.53** |
 
 ---
 
@@ -127,7 +153,7 @@ bash scripts/vlm/build_vlm_demo.sh all
 ```
 
 ### 第四步：准备模型
-请勿在 8GB 的板端直接转换模型（必 OOM）。请在 PC 上完成转换，或下载已转换的 `.rkllm` / `.rknn` 文件，并将它们统一放入项目根目录下的 `models/` 文件夹中。
+模型转换耗内存大，**不建议在内存紧张的板端（尤其 8GB 机型）上直接转换**。请在 x86_64 PC 或充足内存的主机上完成转换，或下载已转换的 `.rkllm` / `.rknn` 文件，放入项目根目录下的 `models/` 文件夹中。
 
 ### 第五步：运行自动化基准测试 (Benchmark)
 **这是本项目最核心的入口！**
@@ -152,7 +178,7 @@ sudo python3 run_benchmark.py --model qwen3-0.6b-text internvl3.5-1b-npu
 | :--- | :--- |
 | 📖 [**benchmark_guide.md**](docs/benchmark_guide.md) | **基准测试指南**。教你如何修改配置 `models_config.yaml`，添加自定义模型到测试队列，以及排查自动化测试失败的问题。 |
 | 🗜️ [**dependencies.md**](docs/dependencies.md) | **底层系统依赖剖析**。极其详细地记录了 C++ 链接库 (.so) 与系统要求。如果您想在 **无 OS (裸机)** 或精简 Docker 中运行模型，请看这里。 |
-| 📊 [**final_report.md**](docs/final_report.md) | **跑分大报告**。详细归纳了所有单核/多核 NPU 性能数据，并包含了几十个 7B/14B 大模型的内存溢出 (OOM) 失败情况分析。 |
+| 📊 [**final_report.md**](docs/final_report.md) | **跑分大报告**。详细归纳了单核/多核 NPU 性能数据|
 
 ---
 

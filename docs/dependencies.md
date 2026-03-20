@@ -8,7 +8,7 @@
 
 ## 1. 操作系统与系统级工具链 (OS & System Toolchain)
 
-本项目主要针对 ARM64 (aarch64) 架构的 Rockchip RK3588 平台进行开发与验证。在常规的 Linux 发行版（如 Ubuntu 20.04/22.04、Debian 11）下需要以下系统级支持。
+本项目主要针对 ARM64 (aarch64) 架构的 Rockchip RK3588 平台进行开发与验证。在常规的 Linux 发行版（如 Ubuntu 20.04/22.04、Debian 11/12）下需要以下系统级支持；
 
 ### 1.1 系统核心依赖
 *   **指令集架构**: `aarch64` (ARM64)

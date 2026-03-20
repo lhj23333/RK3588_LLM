@@ -14,6 +14,6 @@ class TextEngine(BaseEngine):
             str(self.config.max_context_len)
         ]
 
-    def run(self, prompt: str, timeout: int = 300, **kwargs):
+    def run(self, prompt: str, timeout: int = 900, **kwargs):
         # Override run to adapt to text demo, or inherit and just pass prompt
         return super().run(prompt, timeout=timeout, **kwargs)

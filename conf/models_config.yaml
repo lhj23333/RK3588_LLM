@@ -3,73 +3,87 @@ models:
   internlm2-7b-text: # OOM
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/internlm2-7b_W8A8_RK3588.rkllm"
+    model_path: "models/Internlm2-7B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
+
+  qwen1.5-7b-text: 
+    type: "text"
+    binary_path: "demos/build/text_llm_demo"
+    model_path: "models/Qwen1.5-7B_W8A8_RK3588_npu3.rkllm"
+    max_new_tokens: 512
+    max_context_len: 2048
 
   qwen2-1.5b-text: 
     type: "text"
     binary_path: "demos/build/text_llm_demo"
     model_path: "models/Qwen2-1.5B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
-  qwen2.5-7b-text: # OOM
+  qwen2-7b-text: 
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/Qwen2.5-7B-Instruct-rk3588-w8a8-opt-0-hybrid-ratio-0.0.rkllm"
+    model_path: "models/Qwen2-7B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
+
+  qwen2.5-7b-text:
+    type: "text"
+    binary_path: "demos/build/text_llm_demo"
+    model_path: "models/Qwen2.5-7B_W8A8_RK3588.rkllm"
+    max_new_tokens: 512
+    max_context_len: 2048
 
   qwen3-0.6b-text:
     type: "text"
     binary_path: "demos/build/text_llm_demo"
     model_path: "models/Qwen3-0.6B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
   
   qwen3-1b-text:
     type: "text"
     binary_path: "demos/build/text_llm_demo"
     model_path: "models/Qwen3-1B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
   qwen3-4b-text:
     type: "text"
     binary_path: "demos/build/text_llm_demo"
     model_path: "models/Qwen3-4B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
   qwen3-8b-text: # OOM
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/Qwen3-8B-rk3588-w8a8-opt-1-hybrid-ratio-0.5.rkllm"
+    model_path: "models/Qwen3-8B_W8A8_RK3588_npu3.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
 
   llama2-7b-text: # OOM 
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/llama2-chat-7b-hf.rkllm"
+    model_path: "models/Llama-2-7b-chat-hf_W8A8_RK3588_npu3.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
   llama2-13b-text: # OOM
     type: "text"
     binary_path: "demos/build/text_llm_demo"
     model_path: "models/llama2-chat-13b-hf.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
   llama3-8b-text: # OOM
     type: "text"
     binary_path: "demos/build/text_llm_demo"
-    model_path: "models/llama-3-8B-Instruct-rk3588.rkllm"
+    model_path: "models/Llama-3-8B_W8A8_RK3588.rkllm"
     max_new_tokens: 512
-    max_context_len: 4096
+    max_context_len: 2048
 
 
 ## VLM 多模态
@@ -79,7 +93,7 @@ models:
     vision_model_path: "models/internvl3.5_vision_rk3588.rknn"
     llm_model_path: "models/Intervl3.5-1B.rkllm"
     max_new_tokens: 2048
-    max_context_len: 4096
+    max_context_len: 2048
 
   internvl3.5-2b-npu:
     type: "vlm"
@@ -87,7 +101,7 @@ models:
     vision_model_path: "models/internvl3.5_vision_rk3588.rknn"
     llm_model_path: "models/Intervl3.5-2B.rkllm"
     max_new_tokens: 2048
-    max_context_len: 4096
+    max_context_len: 2048
 
   internvl3.5-4b-npu:
     type: "vlm"
@@ -95,7 +109,15 @@ models:
     vision_model_path: "models/internvl3.5_vision_rk3588.rknn"
     llm_model_path: "models/Intervl3.5-4B.rkllm"
     max_new_tokens: 2048
-    max_context_len: 4096
+    max_context_len: 2048
+
+  qwen2.5-vl-7b-npu:
+    type: "vlm"
+    binary_path: "demos/build/Qwen2.5-VL-3B-NPU_VLM_NPU"
+    vision_model_path: "models/qwen2_5-vl-7b_vision_rk3588.rknn"
+    llm_model_path: "models/qwen2_5-vl-7b_instruct.rkllm"
+    max_new_tokens: 2048
+    max_context_len: 2048
 
   qwen3-vl-2b-npu:
     type: "vlm"
@@ -103,7 +125,7 @@ models:
     vision_model_path: "models/qwen3-vl_vision_rk3588.rknn"
     llm_model_path: "models/qwen3-vl-2B-w8a8-rk3588.rkllm"
     max_new_tokens: 2048
-    max_context_len: 4096
+    max_context_len: 2048
 
   qwen3-vl-4b-npu:
     type: "vlm"
@@ -111,4 +133,12 @@ models:
     vision_model_path: "models/qwen3-vl_vision_rk3588.rknn"
     llm_model_path: "models/Qwen3-VL-4B.rkllm"
     max_new_tokens: 2048
-    max_context_len: 4096
+    max_context_len: 2048
+
+  qwen3-vl-8b-npu:
+    type: "vlm"
+    binary_path: "demos/build/Qwen3-VL-4B-NPU_VLM_NPU"
+    vision_model_path: "models/qwen3-vl-8b_vision_rk3588.rknn"
+    llm_model_path: "models/qwen3-vl-8b_instruct.rkllm"
+    max_new_tokens: 2048
+    max_context_len: 2048

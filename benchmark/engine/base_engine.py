@@ -23,7 +23,7 @@ class BaseEngine:
     def _build_cmd(self, **kwargs):
         raise NotImplementedError("Subclasses should implement this method.")
 
-    def run(self, prompt: str, timeout: int = 300, **kwargs):
+    def run(self, prompt: str, timeout: int = 900, **kwargs):
         cmd = self._build_cmd(**kwargs)
         
         start_time = time.time()

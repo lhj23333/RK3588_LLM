@@ -16,3 +16,6 @@
 [submodule "third_party/Qwen3-VL-4B-NPU"]
 	path = third_party/Qwen3-VL-4B-NPU
 	url = https://github.com/Qengineering/Qwen3-VL-4B-NPU.git
+[submodule "third_party/Qwen2.5-VL-3B-NPU"]
+	path = third_party/Qwen2.5-VL-3B-NPU
+	url = https://github.com/Qengineering/Qwen2.5-VL-3B-NPU
