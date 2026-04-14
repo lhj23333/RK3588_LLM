@@ -9,6 +9,8 @@ class BaseEngine:
         self.workspace_root = workspace_root
         self.env = os.environ.copy()
         self.tracker = ProcessDRAMTracker()
+        # Log hook (e.g. GUI can inject a sink). Default preserves current behavior.
+        self.log_fn = print
         
         # Setup LD_LIBRARY_PATH based on project structure
         rkllm_api = os.path.join(workspace_root, "third_party", "rknn-llm", "rkllm-runtime", "Linux", "librkllm_api", "aarch64")
@@ -74,7 +76,7 @@ class BaseEngine:
             
             # 此时 RKLLM 已经完成了模型的 load 并且根据 context len 预分配了完整的 KV-Cache DRAM
             init_dram_mb = self.tracker.get_process_dram_mb()
-            print(f"[Profiler] Init DRAM (Weights + KV-Cache): {init_dram_mb:.2f} MB")
+            self.log_fn(f"[Profiler] Init DRAM (Weights + KV-Cache): {init_dram_mb:.2f} MB")
             
             # The demo apps expect questions on stdin, separated by newlines, and "exit" to quit
             input_data = f"{prompt}\nexit\n".encode('utf-8')
@@ -97,7 +99,7 @@ class BaseEngine:
                 
             runtime_buffer_mb = max(0.0, total_peak_mb - init_dram_mb)
             
-            print(f"[Profiler] Runtime Buffer: {runtime_buffer_mb:.2f} MB | Total Peak DRAM (VmHWM): {total_peak_mb:.2f} MB")
+            self.log_fn(f"[Profiler] Runtime Buffer: {runtime_buffer_mb:.2f} MB | Total Peak DRAM (VmHWM): {total_peak_mb:.2f} MB")
             
             mem_metrics = {
                 "model_data_mb": init_dram_mb,              # Mapped to Init DRAM

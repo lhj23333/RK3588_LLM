@@ -157,14 +157,17 @@ bash scripts/vlm/build_vlm_demo.sh all
 
 ### 第五步：运行自动化基准测试 (Benchmark)
 **这是本项目最核心的入口！**
-它会自动开启定频模式，加载 YAML 配置，拉起对应的底层 C++ 程序进行压力测试与内存探测：
+它会加载 YAML 配置，拉起对应的底层 C++ 程序进行压力测试与内存探测：
 
 ```bash
+# （推荐）跑分前先手动锁定高性能模式，保证结果稳定
+sudo bash scripts/fix_freq_rk3588.sh
+
 # 启动所有模型的一键测试
-sudo python3 run_benchmark.py --model all
+python3 run_benchmark.py --model all
 
 # 或者只测试指定的几个模型
-sudo python3 run_benchmark.py --model qwen3-0.6b-text internvl3.5-1b-npu
+python3 run_benchmark.py --model qwen3-0.6b-text internvl3.5-1b-npu
 ```
 跑分完成后，报告将自动保存在 `results/benchmark_report.md` 中。
 

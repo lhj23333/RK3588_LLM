@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-WORKSPACE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+WORKSPACE_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RKLLM_SDK="${WORKSPACE_ROOT}/third_party/rknn-llm"
 
 RKLLM_INCLUDE="${RKLLM_SDK}/rkllm-runtime/Linux/librkllm_api/include"

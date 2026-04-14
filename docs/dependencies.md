@@ -13,7 +13,7 @@
 ### 1.1 系统核心依赖
 *   **指令集架构**: `aarch64` (ARM64)
 *   **内核驱动**: 必须存在 `/dev/rknn` 节点（Rockchip NPU Kernel Driver），用于调度底层 NPU 算力。
-*   **Root 权限**: Benchmark 阶段执行 `fix_freq_rk3588.sh` 开启定频/性能模式需要 `sudo` 权限与对应的 `/sys/devices/system/cpu/.../cpufreq/` 读写权限。
+*   **Root 权限（可选）**: 若您在跑分前手动执行 `fix_freq_rk3588.sh` 开启定频/性能模式，需要 `sudo` 权限与对应的 `/sys/devices/system/cpu/.../cpufreq/` 读写权限。
 
 ### 1.2 C++ 编译工具链
 对于部署或二次开发 `demos/build/` 下的推理程序，必须安装：

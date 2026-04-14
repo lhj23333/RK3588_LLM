@@ -6,7 +6,7 @@
 
 ## 1. 概述 (Overview)
 
-本项目的基准测试框架完全自动化。它通过统一的 Python 入口脚本 `run_benchmark.py` 进行调度，支持批量测试、自动化硬件频率锁定、NPU 环境变量配置，并自动收集性能指标（Init DRAM, Runtime Buffer, Generate TPS 等）生成 Markdown 格式的测试报告。
+本项目的基准测试框架通过统一的 Python 入口脚本 `run_benchmark.py` 进行调度，支持批量测试、NPU 环境变量配置，并自动收集性能指标（Init DRAM, Runtime Buffer, Generate TPS 等）生成 Markdown 格式的测试报告。
 
 核心架构与目录构成：
 *   **入口脚本**: `run_benchmark.py`
@@ -25,7 +25,7 @@
     *   *注：具体路径需要与 `models_config.yaml` 中配置的 `binary_path` 一致。*
 2.  **准备量化模型**: 请将转换好的 `.rkllm` (及相关 `.rknn`) 权重文件放置在项目根目录的 `models/` 文件夹下。
 3.  **安装 Python 依赖**: 确保系统已安装 Python 3 环境。
-4.  **提供 sudo 权限**: 为了保证测试数据的稳定性，脚本会自动运行 `scripts/fix_freq_rk3588.sh` 开启 CPU/NPU 的性能（定频）模式。此步骤需要 `sudo` 权限。
+4.  **可选：锁定高性能模式（推荐）**: 为了保证测试数据的稳定性，建议在跑分前手动运行 `sudo bash scripts/fix_freq_rk3588.sh`，开启 CPU/DDR/NPU/GPU 的性能（定频）模式。
 
 ---
 
