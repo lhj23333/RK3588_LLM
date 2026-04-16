@@ -1,6 +1,8 @@
 import os
 import subprocess
 import time
+import codecs
+import threading
 from benchmark.profiler.memory_tracker import ProcessDRAMTracker
 
 class BaseEngine:
@@ -11,6 +13,8 @@ class BaseEngine:
         self.tracker = ProcessDRAMTracker()
         # Log hook (e.g. GUI can inject a sink). Default preserves current behavior.
         self.log_fn = print
+        # Stream hook for incremental model output.
+        self.stream_fn = None
         
         # Setup LD_LIBRARY_PATH based on project structure
         rkllm_api = os.path.join(workspace_root, "third_party", "rknn-llm", "rkllm-runtime", "Linux", "librkllm_api", "aarch64")
@@ -27,6 +31,16 @@ class BaseEngine:
 
     def run(self, prompt: str, timeout: int = 900, **kwargs):
         cmd = self._build_cmd(**kwargs)
+
+        def _emit_stream(text: str):
+            if not text:
+                return
+            if self.stream_fn is None:
+                return
+            try:
+                self.stream_fn(text)
+            except Exception:
+                pass
         
         start_time = time.time()
         process = None
@@ -80,11 +94,44 @@ class BaseEngine:
             
             # The demo apps expect questions on stdin, separated by newlines, and "exit" to quit
             input_data = f"{prompt}\nexit\n".encode('utf-8')
-            output_remainder, _ = process.communicate(input=input_data, timeout=timeout)
+
+            if process.stdin is None:
+                raise RuntimeError("Subprocess stdin is not available.")
+            process.stdin.write(input_data)
+            process.stdin.flush()
+            process.stdin.close()
+
+            read_errors = []
+
+            def _reader_loop():
+                if process.stdout is None:
+                    return
+                decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+                try:
+                    while True:
+                        chunk = process.stdout.read(256)
+                        if not chunk:
+                            break
+                        output_bytes.extend(chunk)
+                        text_chunk = decoder.decode(chunk, final=False)
+                        _emit_stream(text_chunk)
+                    tail = decoder.decode(b"", final=True)
+                    _emit_stream(tail)
+                except Exception as e:
+                    read_errors.append(e)
+
+            reader_thread = threading.Thread(target=_reader_loop, daemon=True)
+            reader_thread.start()
+
+            process.wait(timeout=timeout)
+            reader_thread.join(timeout=2.0)
+
+            if read_errors:
+                raise RuntimeError(f"Failed to read subprocess stdout: {read_errors[0]}")
             
             duration = time.time() - start_time
             
-            full_output = output_bytes + (output_remainder or b"")
+            full_output = bytes(output_bytes)
             out_str = full_output.decode('utf-8', errors='replace')
             
             # Parse metrics early to get the real peak memory

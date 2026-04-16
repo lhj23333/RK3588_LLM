@@ -1,7 +1,7 @@
 [
-  {"id": 1, "category": "short_test", "prompt": "你好，请自我介绍一下。"},
-  {"id": 2, "category": "math", "prompt": "计算 123 乘以 456 的结果并解释步骤。"},
-  {"id": 3, "category": "code", "prompt": "用 Python 写一个快速排序算法。"},
-  {"id": 4, "category": "logic", "prompt": "树上原本有10只鸟，开枪打死了一只，还剩几只？"},
-  {"id": 5, "category": "long_text_cache_test", "prompt": "请写一篇关于人工智能未来发展对社会影响的长篇文章，包含经济、教育、医疗三个方面，字数要求详尽，至少分三段。"}
+  {"id": 1, "category": "short_test", "prompt": "Hello, please introduce yourself."},
+  {"id": 2, "category": "math", "prompt": "Calculate the result of multiplying the 123 by the 456 and explain the steps."},
+  {"id": 3, "category": "code", "prompt": "Write a quick sort algorithm in Python."},
+  {"id": 4, "category": "logic", "prompt": "There were originally 10 birds on the tree. Someone fired a gun and killed one. How many birds are left?"},
+  {"id": 5, "category": "long_text_cache_test", "prompt": "Please write a long article on the impact of the future development of artificial intelligence on society, including three aspects: economy, education, and medical care. The number of words is required to be detailed and divided into at least three paragraphs."}
 ]

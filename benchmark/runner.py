@@ -28,6 +28,7 @@ class BenchmarkRunner:
                 - on_log(msg: str)
                 - on_model_start(model_name, model_type, total_tasks_for_model, log_file_path)
                 - on_task_start(model_name, task_dict)
+                - on_task_stream(model_name, task_dict, text_chunk)
                 - on_task_end(model_name, task_dict, success, output_text, duration_s, mem_metrics_dict, parsed_metrics_dict)
                 - on_model_end(model_name, status)
                 - on_run_end(report_path)
@@ -53,6 +54,15 @@ class BenchmarkRunner:
                 return bool(cancel_event.is_set())
             except Exception:
                 return False
+
+        def _emit_task_stream(model_name: str, task_dict: dict, text_chunk: str):
+            if not text_chunk:
+                return
+            if event_sink is not None and hasattr(event_sink, "on_task_stream"):
+                try:
+                    event_sink.on_task_stream(model_name, task_dict, text_chunk)
+                except Exception:
+                    pass
         
         for model_name in models_to_run:
             if _is_cancelled():
@@ -122,7 +132,18 @@ class BenchmarkRunner:
                                 pass
 
                         _emit_log(f"Task {task['id']}: {task['prompt'][:20]}...")
-                        success, output, duration, mem_metrics = engine.run(task['prompt'])
+                        try:
+                            engine.stream_fn = lambda chunk, mn=model_name, td=task_dict: _emit_task_stream(mn, td, chunk)
+                        except Exception:
+                            pass
+
+                        try:
+                            success, output, duration, mem_metrics = engine.run(task['prompt'])
+                        finally:
+                            try:
+                                engine.stream_fn = None
+                            except Exception:
+                                pass
                         
                         log_f.write(f"--- Task {task['id']} (Prompt: {task['prompt']}) ---\n")
                         log_f.write(f"Duration: {duration:.2f}s\n")
@@ -174,7 +195,18 @@ class BenchmarkRunner:
                                 pass
 
                         _emit_log(f"Task {task['id']}: image={os.path.basename(task['image'])}, prompt='{prompt[:20]}...'")
-                        success, output, duration, mem_metrics = engine.run(prompt, image_path=task['image'])
+                        try:
+                            engine.stream_fn = lambda chunk, mn=model_name, td=task_dict: _emit_task_stream(mn, td, chunk)
+                        except Exception:
+                            pass
+
+                        try:
+                            success, output, duration, mem_metrics = engine.run(prompt, image_path=task['image'])
+                        finally:
+                            try:
+                                engine.stream_fn = None
+                            except Exception:
+                                pass
                         
                         log_f.write(f"--- Task {task['id']} (Image: {task['image']} | Prompt: {prompt}) ---\n")
                         log_f.write(f"Duration: {duration:.2f}s\n")

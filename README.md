@@ -166,6 +166,9 @@ sudo bash scripts/fix_freq_rk3588.sh
 # 启动所有模型的一键测试
 python3 run_benchmark.py --model all
 
+# 启动 GUI 可视化测试
+python3 run_benchmark.py --gui
+
 # 或者只测试指定的几个模型
 python3 run_benchmark.py --model qwen3-0.6b-text internvl3.5-1b-npu
 ```
