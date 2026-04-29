@@ -18,7 +18,8 @@ rk3588_llm_workspace/
 ├── docs/                     # 核心文档与技术细节指引
 │   ├── benchmark_guide.md    # 自动化跑分框架使用说明
 │   ├── dependencies.md       # 系统级极简部署与底层 `.so` 库依赖分析
-│   └── final_report.md       # 最终生成的性能、显存综合报告 (含 OOM 分析)
+│   ├── final_report.md       # 最终生成的性能、显存综合报告 (含 OOM 分析)
+│   └── videos/               # Benchmark / Demo 运行录屏 (MP4)
 ├── models/                   # 用户放置转换后权重文件 (.rkllm / .rknn) 的目录
 ├── results/                  # 测试结果生成输出目录
 │   └── benchmark_report.md   # 自动生成的 Benchmark 分数表
@@ -61,7 +62,7 @@ rk3588_llm_workspace/
 | **Qwen2-7B** | 4096 | ~7.04 GB | ~9 MB | ~7.05 GB | **4.05** |
 | **Qwen2.5-7B** | 4096 | ~7.04 GB | ~19 MB | ~7.06 GB | **4.07** |
 | **Qwen3-0.6B** | 4096 | ~1.24 GB | ~2.5 MB | ~1.24 GB | **26.78** |
-| **Qwen3-1B**   | 4096 | ~1.52 GB | ~10.4 MB | ~1.53 GB | **17.65** |
+| **Qwen3-1.7B**   | 4096 | ~1.52 GB | ~10.4 MB | ~1.53 GB | **17.65** |
 | **Qwen3-4B**   | 4096 | ~4.71 GB | ~8.4 MB | ~4.72 GB | **6.29** |
 | **Qwen3-8B** | 4096 | ~7.67 GB | ~9 MB | ~7.68 GB | **3.77** |
 | **Qwen3-14B** | 4096 | ~14.78 GB | ~125 MB | ~14.85 GB | **2.01** |
@@ -95,7 +96,7 @@ rk3588_llm_workspace/
 | **Qwen2-7B** | 4096 | ~6.99 GB | ~15 MB | ~7.00 GB | **1.52** |
 | **Qwen2.5-7B** | 4096 | ~6.99 GB | ~16 MB | ~7.00 GB | **1.53** |
 | **Qwen3-0.6B** | 4096 | ~1.17 GB | ~4.2 MB | ~1.18 GB | **13.87** |
-| **Qwen3-1B**   | 4096 | ~1.49 GB | ~6.0 MB | ~1.50 GB | **7.61** |
+| **Qwen3-1.7B**   | 4096 | ~1.49 GB | ~6.0 MB | ~1.50 GB | **7.61** |
 | **Qwen3-4B**   | 4096 | ~4.59 GB | ~7.2 MB | ~4.60 GB | **2.57** |
 | **Qwen3-8B** | 4096 | ~7.62 GB | ~11 MB | ~7.63 GB | **1.42** |
 | **Qwen3-14B** | 4096 | ~14.81 GB | ~132 MB | ~14.89 GB | **0.76** |
@@ -116,6 +117,32 @@ rk3588_llm_workspace/
 | **InternVL3.5-4B** | 4096 | ~4.63 GB | ~0.65 GB | ~5.28 GB | **2.59** |
 | **InternVL3.5-8B** | 4096 | ~7.44 GB | ~0.90 GB | ~8.32 GB | **1.46** |
 | **Qwen2.5-VL-7B** | 4096 | ~7.02 GB | ~1.50 GB | ~8.52 GB | **1.53** |
+
+### 3.3 Benchmark 演示录屏
+
+以下为 `run_benchmark.py`（含 GUI）在 RK3588 上运行时的录屏，在 GitHub 仓库页面或本地预览 README 时可直接播放。源文件位于 [`docs/videos/`](docs/videos/)。
+
+#### 纯文本 LLM（Text-only）
+
+**Qwen3-0.6B**
+
+
+**Qwen3-1.7B**
+
+
+**Qwen3-4B**
+
+
+#### 视觉语言 VLM（InternVL3.5）
+
+**InternVL3.5-1B**
+
+
+**InternVL3.5-2B**
+
+
+**InternVL3.5-4B**
+
 
 ---
 

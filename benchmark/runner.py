@@ -29,6 +29,7 @@ class BenchmarkRunner:
                 - on_model_start(model_name, model_type, total_tasks_for_model, log_file_path)
                 - on_task_start(model_name, task_dict)
                 - on_task_stream(model_name, task_dict, text_chunk)
+                - on_task_metric(model_name, task_dict, metrics_dict)
                 - on_task_end(model_name, task_dict, success, output_text, duration_s, mem_metrics_dict, parsed_metrics_dict)
                 - on_model_end(model_name, status)
                 - on_run_end(report_path)
@@ -61,6 +62,15 @@ class BenchmarkRunner:
             if event_sink is not None and hasattr(event_sink, "on_task_stream"):
                 try:
                     event_sink.on_task_stream(model_name, task_dict, text_chunk)
+                except Exception:
+                    pass
+
+        def _emit_task_metric(model_name: str, task_dict: dict, metrics_dict: dict):
+            if not metrics_dict:
+                return
+            if event_sink is not None and hasattr(event_sink, "on_task_metric"):
+                try:
+                    event_sink.on_task_metric(model_name, task_dict, metrics_dict)
                 except Exception:
                     pass
         
@@ -134,6 +144,7 @@ class BenchmarkRunner:
                         _emit_log(f"Task {task['id']}: {task['prompt'][:20]}...")
                         try:
                             engine.stream_fn = lambda chunk, mn=model_name, td=task_dict: _emit_task_stream(mn, td, chunk)
+                            engine.metrics_fn = lambda metrics, mn=model_name, td=task_dict: _emit_task_metric(mn, td, metrics)
                         except Exception:
                             pass
 
@@ -142,6 +153,7 @@ class BenchmarkRunner:
                         finally:
                             try:
                                 engine.stream_fn = None
+                                engine.metrics_fn = None
                             except Exception:
                                 pass
                         
@@ -197,6 +209,7 @@ class BenchmarkRunner:
                         _emit_log(f"Task {task['id']}: image={os.path.basename(task['image'])}, prompt='{prompt[:20]}...'")
                         try:
                             engine.stream_fn = lambda chunk, mn=model_name, td=task_dict: _emit_task_stream(mn, td, chunk)
+                            engine.metrics_fn = lambda metrics, mn=model_name, td=task_dict: _emit_task_metric(mn, td, metrics)
                         except Exception:
                             pass
 
@@ -205,6 +218,7 @@ class BenchmarkRunner:
                         finally:
                             try:
                                 engine.stream_fn = None
+                                engine.metrics_fn = None
                             except Exception:
                                 pass
                         
@@ -266,6 +280,7 @@ class BenchmarkRunner:
             "model_data_mb": 0.0,
             "kv_cache_overhead_mb": 0.0,
             "total_peak_mb": 0.0,
+            "avg_cpu_usage_percent": 0.0,
             "npu_core_num": 0,
             "status": status
         }
@@ -283,6 +298,7 @@ class BenchmarkRunner:
         max_model_data = max([m.get("model_data_mb", 0.0) for m in metrics_list])
         max_kv_cache = max([m.get("kv_cache_overhead_mb", 0.0) for m in metrics_list])
         max_total_peak = max([m.get("total_peak_mb", 0.0) for m in metrics_list])
+        avg_cpu_usage = sum(m.get("avg_cpu_usage_percent", 0.0) for m in metrics_list) / len(metrics_list)
         
         count = len(metrics_list)
 
@@ -300,6 +316,7 @@ class BenchmarkRunner:
             "model_data_mb": max_model_data,
             "kv_cache_overhead_mb": max_kv_cache,
             "total_peak_mb": max_total_peak,
+            "avg_cpu_usage_percent": avg_cpu_usage,
             "npu_core_num": max_npu_core,
             "status": status
         }

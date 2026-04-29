@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from PyQt5.QtCore import QObject, Qt, QThread, pyqtSignal
@@ -184,6 +184,7 @@ class TaskRecord:
     duration_s: float
     raw_output: str
     extracted_answer: str
+    runtime_metrics: Dict[str, Any] = field(default_factory=dict)
 
 
 class QtEventSink(QObject):
@@ -191,6 +192,7 @@ class QtEventSink(QObject):
     model_start = pyqtSignal(str, str, int, str)
     task_start = pyqtSignal(str, object)
     task_stream = pyqtSignal(str, object, str)
+    task_metric = pyqtSignal(str, object, object)
     task_end = pyqtSignal(str, object, bool, str, float, object, object)
     model_end = pyqtSignal(str, str)
     run_end = pyqtSignal(str)
@@ -207,6 +209,9 @@ class QtEventSink(QObject):
 
     def on_task_stream(self, model_name: str, task_dict: Dict[str, Any], text_chunk: str):
         self.task_stream.emit(model_name, task_dict, text_chunk)
+
+    def on_task_metric(self, model_name: str, task_dict: Dict[str, Any], metrics_dict: Dict[str, Any]):
+        self.task_metric.emit(model_name, task_dict, metrics_dict)
 
     def on_task_end(
         self,
@@ -299,6 +304,8 @@ class BenchmarkGui(QMainWindow):
         self._stream_answer_by_task: Dict[str, str] = {}
         self._task_prompt_by_key: Dict[str, str] = {}
         self._task_image_by_key: Dict[str, Optional[str]] = {}
+        self._live_metrics_by_task: Dict[str, Dict[str, Any]] = {}
+        self._final_metrics_by_task: Dict[str, Dict[str, Any]] = {}
         self._live_history_item: Optional[QListWidgetItem] = None
 
         self._worker_thread: Optional[QThread] = None
@@ -497,12 +504,12 @@ class BenchmarkGui(QMainWindow):
         left_layout.addWidget(self.history_list, stretch=2)
         h_split.addWidget(left_panel)
 
-        right_panel = QFrame()
-        right_panel.setObjectName("PanelCard")
-        right_layout = QVBoxLayout()
-        right_layout.setContentsMargins(12, 12, 12, 12)
-        right_layout.setSpacing(6)
-        right_panel.setLayout(right_layout)
+        middle_panel = QFrame()
+        middle_panel.setObjectName("PanelCard")
+        middle_layout = QVBoxLayout()
+        middle_layout.setContentsMargins(12, 12, 12, 12)
+        middle_layout.setSpacing(6)
+        middle_panel.setLayout(middle_layout)
 
         self.image_section = QWidget()
         image_layout = QVBoxLayout()
@@ -517,31 +524,90 @@ class BenchmarkGui(QMainWindow):
         self.image_label.setMinimumHeight(260)
         image_layout.addWidget(self.image_label, stretch=1)
 
-        right_layout.addWidget(self.image_section, stretch=2)
+        middle_layout.addWidget(self.image_section, stretch=2)
 
         prompt_title = QLabel("Prompt")
         prompt_title.setObjectName("SectionTitle")
-        right_layout.addWidget(prompt_title)
+        middle_layout.addWidget(prompt_title)
         self.prompt_edit = QPlainTextEdit()
         self.prompt_edit.setObjectName("PromptEdit")
         self.prompt_edit.setReadOnly(True)
         self.prompt_edit.setMaximumBlockCount(5000)
         self.prompt_edit.setPlaceholderText("Prompt will appear here...")
-        right_layout.addWidget(self.prompt_edit, stretch=1)
+        middle_layout.addWidget(self.prompt_edit, stretch=1)
+
+        right_panel = QFrame()
+        right_panel.setObjectName("PanelCard")
+        right_panel.setMinimumWidth(320)
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(12, 12, 12, 12)
+        right_layout.setSpacing(10)
+        right_panel.setLayout(right_layout)
+
+        runtime_title = QLabel("Runtime Performance")
+        runtime_title.setObjectName("SectionTitle")
+        right_layout.addWidget(runtime_title)
+
+        runtime_hint = QLabel("Live profiler snapshots for the current benchmark task.")
+        runtime_hint.setObjectName("ModeHint")
+        runtime_hint.setWordWrap(True)
+        right_layout.addWidget(runtime_hint)
+
+        self.runtime_panel = QFrame()
+        self.runtime_panel.setObjectName("MetricsPanel")
+        runtime_layout = QVBoxLayout()
+        runtime_layout.setContentsMargins(12, 12, 12, 12)
+        runtime_layout.setSpacing(10)
+        self.runtime_panel.setLayout(runtime_layout)
+
+        self._runtime_value_labels: Dict[str, QLabel] = {}
+        runtime_fields = [
+            ("stage_status", "Stage / Status"),
+            ("current_dram_mb", "Current DRAM"),
+            ("init_dram_mb", "Init DRAM"),
+            ("runtime_buffer_mb", "Runtime Buffer"),
+            ("total_peak_mb", "Total Peak DRAM"),
+            ("avg_cpu_usage_percent", "Avg Runtime CPU Usage"),
+            ("generate_tps", "Generate TPS"),
+            ("duration_s", "Duration"),
+        ]
+        for metric_key, label_text in runtime_fields:
+            metric_card = QFrame()
+            metric_card.setObjectName("MetricItem")
+            metric_card_layout = QVBoxLayout()
+            metric_card_layout.setContentsMargins(12, 10, 12, 10)
+            metric_card_layout.setSpacing(4)
+            metric_card.setLayout(metric_card_layout)
+
+            title_label = QLabel(label_text)
+            title_label.setObjectName("MetricLabel")
+            value_label = QLabel("--")
+            value_label.setObjectName("MetricValue")
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            if metric_key == "stage_status":
+                value_label.setProperty("metricRole", "status")
+            metric_card_layout.addWidget(title_label)
+            metric_card_layout.addWidget(value_label)
+            runtime_layout.addWidget(metric_card)
+            self._runtime_value_labels[metric_key] = value_label
+        right_layout.addWidget(self.runtime_panel)
+        right_layout.addStretch(1)
 
         answer_title = QLabel("Model Output (Extracted Answer)")
         answer_title.setObjectName("SectionTitle")
-        right_layout.addWidget(answer_title)
+        middle_layout.addWidget(answer_title)
         self.answer_edit = QPlainTextEdit()
         self.answer_edit.setObjectName("AnswerEdit")
         self.answer_edit.setReadOnly(True)
         self.answer_edit.setMaximumBlockCount(20000)
         self.answer_edit.setPlaceholderText("Model output will appear here...")
-        right_layout.addWidget(self.answer_edit, stretch=2)
+        middle_layout.addWidget(self.answer_edit, stretch=2)
 
+        h_split.addWidget(middle_panel)
         h_split.addWidget(right_panel)
         h_split.setStretchFactor(0, 0)
         h_split.setStretchFactor(1, 1)
+        h_split.setStretchFactor(2, 0)
 
         self.log_edit = QPlainTextEdit()
         self.log_edit.setObjectName("LogEdit")
@@ -595,6 +661,17 @@ class BenchmarkGui(QMainWindow):
                 background: #ffffff;
                 border: 1px solid #d0d9e4;
                 border-radius: 14px;
+            }
+            QFrame#MetricsPanel {
+                background: #f7fbff;
+                border: 1px solid #d5e2f0;
+                border-radius: 12px;
+            }
+            QFrame#MetricItem {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #ffffff, stop:1 #f2f8ff);
+                border: 1px solid #d9e5f2;
+                border-radius: 10px;
             }
             QFrame#ModeCard {
                 border: 1px solid #c9d8e9;
@@ -725,6 +802,26 @@ class BenchmarkGui(QMainWindow):
                 font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.4px;
+            }
+            QLabel#MetricLabel {
+                color: #5a6f86;
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+            }
+            QLabel#MetricValue {
+                color: #17324d;
+                font-size: 18px;
+                font-weight: 700;
+                background: transparent;
+                border: none;
+                padding: 0px;
+            }
+            QLabel#MetricValue[metricRole="status"] {
+                color: #215d93;
+                font-size: 15px;
+                font-weight: 700;
             }
             QLabel#ImagePreview {
                 border: 1px dashed #9ab3cd;
@@ -977,6 +1074,71 @@ class BenchmarkGui(QMainWindow):
         items = self.model_list.selectedItems()
         return [item.text() for item in items if item and item.text()]
 
+    def _blank_runtime_metrics(self, status: str = "idle", stage: str = "idle") -> Dict[str, Any]:
+        return {
+            "stage": stage,
+            "status": status,
+            "init_dram_mb": None,
+            "current_dram_mb": None,
+            "runtime_buffer_mb": None,
+            "total_peak_mb": None,
+            "avg_cpu_usage_percent": None,
+            "prefill_tps": None,
+            "generate_tps": None,
+            "duration_s": None,
+        }
+
+    def _merge_runtime_metrics(
+        self, base_metrics: Optional[Dict[str, Any]], new_metrics: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        merged = dict(base_metrics or self._blank_runtime_metrics())
+        if not new_metrics:
+            return merged
+        for key, value in new_metrics.items():
+            if value is not None:
+                merged[key] = value
+        return merged
+
+    def _format_runtime_status(self, stage: Optional[str], status: Optional[str]) -> str:
+        stage_text = (stage or "").strip() or "idle"
+        status_text = (status or "").strip() or "idle"
+        return f"{stage_text.replace('_', ' ').title()} / {status_text.replace('_', ' ').title()}"
+
+    def _format_runtime_value(self, key: str, value: Any, metrics: Dict[str, Any]) -> str:
+        if key == "stage_status":
+            return self._format_runtime_status(metrics.get("stage"), metrics.get("status"))
+        if value is None:
+            return "--"
+        try:
+            if key in {"current_dram_mb", "init_dram_mb", "runtime_buffer_mb", "total_peak_mb"}:
+                return f"{float(value):.2f} MB"
+            if key == "avg_cpu_usage_percent":
+                return f"{float(value):.2f}%"
+            if key in {"prefill_tps", "generate_tps"}:
+                return f"{float(value):.2f} token/s"
+            if key == "duration_s":
+                return f"{float(value):.2f}s"
+        except Exception:
+            return str(value)
+        return str(value)
+
+    def _update_runtime_panel(self, metrics: Optional[Dict[str, Any]] = None):
+        runtime_metrics = self._merge_runtime_metrics(self._blank_runtime_metrics(), metrics)
+        for key, label in self._runtime_value_labels.items():
+            value = runtime_metrics.get(key if key != "stage_status" else "stage")
+            label.setText(self._format_runtime_value(key, value, runtime_metrics))
+
+    def _current_runtime_metrics_for_task(self, task_key: Optional[str], prefer_final: bool = False) -> Dict[str, Any]:
+        if not task_key:
+            return self._blank_runtime_metrics()
+        if prefer_final and task_key in self._final_metrics_by_task:
+            return self._merge_runtime_metrics(None, self._final_metrics_by_task.get(task_key))
+        if task_key in self._live_metrics_by_task:
+            return self._merge_runtime_metrics(None, self._live_metrics_by_task.get(task_key))
+        if task_key in self._final_metrics_by_task:
+            return self._merge_runtime_metrics(None, self._final_metrics_by_task.get(task_key))
+        return self._blank_runtime_metrics()
+
     def _history_item_payload(self, kind: str, task_key: str, record_index: Optional[int] = None) -> Dict[str, Any]:
         payload: Dict[str, Any] = {"kind": kind, "task_key": task_key}
         if record_index is not None:
@@ -1037,12 +1199,20 @@ class BenchmarkGui(QMainWindow):
         item.setData(Qt.UserRole, self._history_item_payload("record", task_key, record_index))
         self.history_list.addItem(item)
 
-    def _show_task_content(self, task_key: Optional[str], prompt: str, answer: str, image_abs_path: Optional[str]):
+    def _show_task_content(
+        self,
+        task_key: Optional[str],
+        prompt: str,
+        answer: str,
+        image_abs_path: Optional[str],
+        runtime_metrics: Optional[Dict[str, Any]] = None,
+    ):
         self._display_task_key = task_key
         self.prompt_edit.setPlainText(prompt)
         self.answer_edit.setPlainText(answer)
         sb = self.answer_edit.verticalScrollBar()
         sb.setValue(sb.maximum())
+        self._update_runtime_panel(runtime_metrics)
         if self._is_multimodal_mode():
             self._set_image(image_abs_path)
         else:
@@ -1052,10 +1222,15 @@ class BenchmarkGui(QMainWindow):
         if not self._current_task_key:
             return
         self._history_view_locked = False
+        self.history_list.blockSignals(True)
+        self.history_list.clearSelection()
+        self.history_list.setCurrentRow(-1)
+        self.history_list.blockSignals(False)
         prompt = self._task_prompt_by_key.get(self._current_task_key, "")
         answer = self._stream_answer_by_task.get(self._current_task_key, "")
         image_abs_path = self._task_image_by_key.get(self._current_task_key)
-        self._show_task_content(self._current_task_key, prompt, answer, image_abs_path)
+        runtime_metrics = self._current_runtime_metrics_for_task(self._current_task_key)
+        self._show_task_content(self._current_task_key, prompt, answer, image_abs_path, runtime_metrics)
 
     def _clear_history(self):
         self.records.clear()
@@ -1088,6 +1263,7 @@ class BenchmarkGui(QMainWindow):
         self._display_task_key = None
         self.prompt_edit.setPlainText("")
         self.answer_edit.setPlainText("")
+        self._update_runtime_panel(self._blank_runtime_metrics())
         self._set_image(None)
 
     def _reset_run_state(self):
@@ -1104,9 +1280,12 @@ class BenchmarkGui(QMainWindow):
         self._stream_answer_by_task.clear()
         self._task_prompt_by_key.clear()
         self._task_image_by_key.clear()
+        self._live_metrics_by_task.clear()
+        self._final_metrics_by_task.clear()
         self._live_history_item = None
         self.prompt_edit.setPlainText("")
         self.answer_edit.setPlainText("")
+        self._update_runtime_panel(self._blank_runtime_metrics())
         self._set_image(None)
         self.tasks_completed = 0
         self.total_tasks_expected = 0
@@ -1141,6 +1320,7 @@ class BenchmarkGui(QMainWindow):
         sink.model_start.connect(self._on_model_start)
         sink.task_start.connect(self._on_task_start)
         sink.task_stream.connect(self._on_task_stream)
+        sink.task_metric.connect(self._on_task_metric)
         sink.task_end.connect(self._on_task_end)
         sink.model_end.connect(self._on_model_end)
         sink.run_end.connect(self._on_run_end)
@@ -1182,6 +1362,8 @@ class BenchmarkGui(QMainWindow):
         self._current_task_key = f"{model_name}#{tid}"
         self._stream_raw_by_task[self._current_task_key] = ""
         self._stream_answer_by_task[self._current_task_key] = ""
+        self._live_metrics_by_task[self._current_task_key] = self._blank_runtime_metrics(status="running", stage="queued")
+        self._final_metrics_by_task.pop(self._current_task_key, None)
 
         img_rel = task_dict.get("image")
         abs_path = os.path.join(self.workspace_root, str(img_rel)) if img_rel else None
@@ -1189,9 +1371,26 @@ class BenchmarkGui(QMainWindow):
         self._task_image_by_key[self._current_task_key] = abs_path
         self._upsert_live_history_item(model_name, tid, prompt, abs_path)
         if not self._history_view_locked:
-            self._show_task_content(self._current_task_key, prompt, "", abs_path)
+            self._show_task_content(
+                self._current_task_key,
+                prompt,
+                "",
+                abs_path,
+                self._live_metrics_by_task[self._current_task_key],
+            )
 
         self._append_log(f"[GUI] Task start: [{model_name}] #{tid}")
+
+    def _on_task_metric(self, model_name: str, task_dict: Dict[str, Any], metrics_dict: Dict[str, Any]):
+        tid = task_dict.get("id")
+        task_key = f"{model_name}#{tid}"
+        merged_metrics = self._merge_runtime_metrics(self._live_metrics_by_task.get(task_key), metrics_dict)
+        self._live_metrics_by_task[task_key] = merged_metrics
+
+        if self._history_view_locked or self._display_task_key != task_key:
+            return
+
+        self._update_runtime_panel(merged_metrics)
 
     def _on_task_stream(self, model_name: str, task_dict: Dict[str, Any], text_chunk: str):
         if not text_chunk:
@@ -1238,15 +1437,55 @@ class BenchmarkGui(QMainWindow):
             duration_s=float(duration_s),
             raw_output=output_text or "",
             extracted_answer=answer,
+            runtime_metrics={},
         )
         self.records.append(rec)
         self._stream_raw_by_task[task_key] = output_text or ""
         self._stream_answer_by_task[task_key] = answer
 
-        if self._current_task_key == task_key and not self._history_view_locked:
-            self._show_task_content(task_key, rec.prompt, rec.extracted_answer, rec.image_abs_path)
+        existing_metrics = self._merge_runtime_metrics(self._live_metrics_by_task.get(task_key), None)
+        final_status = existing_metrics.get("status")
+        final_stage = existing_metrics.get("stage")
+        if success:
+            final_status = "success"
+            final_stage = "finished"
+        elif output_text.startswith("Timeout after"):
+            final_status = "timeout"
+            final_stage = "timeout"
+        elif final_status in {None, "", "running", "idle"}:
+            final_status = "error"
+            final_stage = "error"
+        elif final_stage in {None, "", "queued", "init", "running", "idle"}:
+            final_stage = "error"
 
-        status = "Success" if rec.success else "Error"
+        final_metrics = self._merge_runtime_metrics(
+            existing_metrics,
+            {
+                "stage": final_stage,
+                "status": final_status,
+                "init_dram_mb": mem_metrics.get("model_data_mb"),
+                "runtime_buffer_mb": mem_metrics.get("kv_cache_overhead_mb"),
+                "total_peak_mb": mem_metrics.get("total_peak_mb"),
+                "avg_cpu_usage_percent": mem_metrics.get("avg_cpu_usage_percent"),
+                "prefill_tps": parsed_metrics.get("prefill_tps") if parsed_metrics else None,
+                "generate_tps": parsed_metrics.get("generate_tps") if parsed_metrics else None,
+                "duration_s": duration_s,
+            },
+        )
+        self._live_metrics_by_task[task_key] = final_metrics
+        self._final_metrics_by_task[task_key] = final_metrics
+        rec.runtime_metrics = dict(final_metrics)
+
+        if self._current_task_key == task_key and not self._history_view_locked:
+            self._show_task_content(task_key, rec.prompt, rec.extracted_answer, rec.image_abs_path, final_metrics)
+
+        status_map = {
+            "success": "Success",
+            "timeout": "Timeout",
+            "stopped": "Stopped",
+            "error": "Error",
+        }
+        status = status_map.get(str(final_status), "Success" if rec.success else "Error")
         self._finalize_live_history_item(model_name, tid, rec.prompt, image_abs, rec.duration_s, status, len(self.records) - 1)
 
         self.tasks_completed += 1
@@ -1291,7 +1530,13 @@ class BenchmarkGui(QMainWindow):
             return
         rec = self.records[rec_idx]
         self._history_view_locked = True
-        self._show_task_content(f"{rec.model_name}#{rec.task_id}", rec.prompt, rec.extracted_answer, rec.image_abs_path)
+        self._show_task_content(
+            f"{rec.model_name}#{rec.task_id}",
+            rec.prompt,
+            rec.extracted_answer,
+            rec.image_abs_path,
+            rec.runtime_metrics,
+        )
 
     def _on_worker_finished(self):
         self._append_log("[GUI] Worker finished.")
@@ -1305,6 +1550,15 @@ class BenchmarkGui(QMainWindow):
             self._set_run_state("error", "State: Error")
         elif self._stop_requested:
             self._set_run_state("ready", "State: Stopped")
+            if not self._history_view_locked and self._current_task_key:
+                current_metrics = self._merge_runtime_metrics(self._live_metrics_by_task.get(self._current_task_key), None)
+                if current_metrics.get("status") not in {"success", "error", "timeout"}:
+                    current_metrics = self._merge_runtime_metrics(
+                        current_metrics,
+                        {"stage": "stopped", "status": "stopped"},
+                    )
+                    self._live_metrics_by_task[self._current_task_key] = current_metrics
+                self._update_runtime_panel(current_metrics)
         else:
             self._set_run_state("ready", "State: Completed")
 

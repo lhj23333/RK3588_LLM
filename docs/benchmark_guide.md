@@ -78,5 +78,6 @@ python run_benchmark.py --model qwen3-0.6b-text
 *   **Init DRAM (Weights+KV-Cache)**: 模型权重和 KV Cache 初始化时消耗的显存（MB）。
 *   **Runtime Buffer DRAM**: 推理过程中算子调度和上下文等使用的动态内存（MB）。
 *   **Total Peak DRAM (VmHWM)**: 进程运行期间内存占用的历史最高峰值。
+*   **Avg Runtime CPU Usage**: 从模型进入可推理状态到任务结束期间，进程平均 CPU 使用率（已按在线 CPU 核数归一化为百分比）。
 *   **Generate TPS (Token/s)**: 模型自回归生成阶段的吞吐速度（Token per second）。
 *   **Status**: 运行状态（如 `Success` 或由于 OOM 导致的异常退出）。

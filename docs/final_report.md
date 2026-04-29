@@ -31,7 +31,7 @@
 | qwen2-7b-text     | 4096           | 3        | ~7210.6 MB             | ~9.4 MB             | ~7219.2 MB      | **4.05**               | Success   |
 | qwen2.5-7b-text   | 4096           | 3        | ~7210.8 MB             | ~18.6 MB            | ~7229.4 MB      | **4.07**               | Success   |
 | qwen3-0.6b-text   | 4096           | 3        | ~1267.5 MB             | ~2.5 MB             | ~1269.8 MB      | **26.78**              | Success   |
-| qwen3-1b-text     | 4096           | 3        | ~1556.4 MB             | ~10.4 MB            | ~1566.7 MB      | **17.65**              | Success   |
+| qwen3-1.7b-text     | 4096           | 3        | ~1556.4 MB             | ~10.4 MB            | ~1566.7 MB      | **17.65**              | Success   |
 | qwen3-4b-text     | 4096           | 3        | ~4825.0 MB             | ~8.4 MB             | ~4833.3 MB      | **6.29**               | Success   |
 | qwen3-8b-text     | 4096           | 3        | ~7857.1 MB             | ~8.8 MB             | ~7864.3 MB      | **3.77**               | Success   |
 | qwen3-14b-text    | 4096           | 3        | ~15135.0 MB            | ~125.0 MB           | ~15206.0 MB     | **2.01**               | Success |
@@ -77,7 +77,7 @@
 | qwen2-7b-text     | 4096           | 1        | ~7153.0 MB             | ~15.2 MB            | ~7168.0 MB      | **1.52**               | Success   |
 | qwen2.5-7b-text   | 4096           | 1        | ~7152.7 MB             | ~16.3 MB            | ~7168.0 MB      | **1.53**               | Success   |
 | qwen3-0.6b-text   | 4096           | 1        | ~1204.3 MB             | ~4.2 MB             | ~1208.3 MB      | **13.87**              | Success   |
-| qwen3-1b-text     | 4096           | 1        | ~1530.3 MB             | ~6.0 MB             | ~1536.0 MB      | **7.61**               | Success   |
+| qwen3-1.7b-text     | 4096           | 1        | ~1530.3 MB             | ~6.0 MB             | ~1536.0 MB      | **7.61**               | Success   |
 | qwen3-4b-text     | 4096           | 1        | ~4703.4 MB             | ~7.2 MB             | ~4710.4 MB      | **2.57**               | Success   |
 | qwen3-8b-text     | 4096           | 1        | ~7803.2 MB             | ~11.4 MB            | ~7813.1 MB      | **1.42**               | Success   |
 | qwen3-14b-text    | 4096           | 1        | ~15165.0 MB            | ~132.0 MB           | ~15247.0 MB     | **0.76**               | Success |
