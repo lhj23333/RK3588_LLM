@@ -126,23 +126,29 @@ rk3588_llm_workspace/
 
 **Qwen3-0.6B**
 
+https://github.com/user-attachments/assets/af16fb17-a7df-42b5-8600-8a132316096a
 
 **Qwen3-1.7B**
 
+https://github.com/user-attachments/assets/7120518f-9d32-4bf3-83cd-714c7f57780b
 
 **Qwen3-4B**
 
+https://github.com/user-attachments/assets/a611d801-2550-4a1d-b05b-d30dc4f078a5
 
 #### 视觉语言 VLM（InternVL3.5）
 
 **InternVL3.5-1B**
 
+https://github.com/user-attachments/assets/1cd25e22-e058-437b-8468-0f0d688c2660
 
 **InternVL3.5-2B**
 
+https://github.com/user-attachments/assets/8faf914f-6477-41d9-82a6-57e9c180ebfb
 
 **InternVL3.5-4B**
 
+https://github.com/user-attachments/assets/b5008f1d-bb55-4774-a4d7-888e10e7e306
 
 ---
 
