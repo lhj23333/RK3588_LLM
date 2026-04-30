@@ -120,8 +120,6 @@ rk3588_llm_workspace/
 
 ### 3.3 Benchmark 演示录屏
 
-以下为 `run_benchmark.py`（含 GUI）在 RK3588 上运行时的录屏，在 GitHub 仓库页面或本地预览 README 时可直接播放。源文件位于 [`docs/videos/`](docs/videos/)。
-
 #### 纯文本 LLM（Text-only）
 
 **Qwen3-0.6B**
