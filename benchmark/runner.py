@@ -7,17 +7,18 @@ from .engine import create_engine
 from .parser import parse_rkllm_metrics
 from .reporter import MarkdownReporter
 
+
 class BenchmarkRunner:
     def __init__(self, workspace_root: str, config_path: str):
         self.workspace_root = workspace_root
         self.models_config = load_config(config_path)
         self.dataset = BenchmarkDataset(workspace_root)
         self.reporter = MarkdownReporter(workspace_root)
-        
+
         # Ensure logs directory exists
         self.logs_dir = os.path.join(self.workspace_root, "logs")
         os.makedirs(self.logs_dir, exist_ok=True)
-        
+
     def run_all(self, target_models=None, event_sink=None, cancel_event=None):
         """
         Run benchmark for all (or specified) models.
@@ -36,7 +37,7 @@ class BenchmarkRunner:
             cancel_event: optional threading.Event-like with is_set()
         """
         results = []
-        
+
         models_to_run = target_models if target_models else list(self.models_config.keys())
 
         def _emit_log(msg: str):
@@ -56,6 +57,9 @@ class BenchmarkRunner:
             except Exception:
                 return False
 
+        def _is_cancelled_output(output: str) -> bool:
+            return str(output or "").lstrip().startswith("Cancelled by user")
+
         def _emit_task_stream(model_name: str, task_dict: dict, text_chunk: str):
             if not text_chunk:
                 return
@@ -73,7 +77,7 @@ class BenchmarkRunner:
                     event_sink.on_task_metric(model_name, task_dict, metrics_dict)
                 except Exception:
                     pass
-        
+
         for model_name in models_to_run:
             if _is_cancelled():
                 _emit_log("[Info] Cancel requested, stopping benchmark before next model.")
@@ -82,30 +86,30 @@ class BenchmarkRunner:
             if model_name not in self.models_config:
                 _emit_log(f"[Warn] Model {model_name} not found in config, skipping.")
                 continue
-                
+
             config = self.models_config[model_name]
             _emit_log("")
             _emit_log("==========================================")
             _emit_log(f"Running benchmark for: {model_name} ({config.type})")
             _emit_log("==========================================")
-            
+
             try:
                 config.validate(self.workspace_root)
             except Exception as e:
                 _emit_log(f"Validation failed: {e}")
-                results.append(self._create_empty_result(model_name, config.type, f"Failed: {e}"))
+                results.append(self._create_empty_result(model_name, config.type, f"Failed: {e}", config))
                 continue
-            
+
             engine = create_engine(config, self.workspace_root)
             # Allow GUI/log sinks to receive engine profiler logs.
             try:
                 engine.log_fn = _emit_log
             except Exception:
                 pass
-            
+
             model_metrics = []
             status = "Success"
-            
+
             # Prepare log file for this model
             log_file_path = os.path.join(self.logs_dir, f"{model_name}.log")
 
@@ -121,11 +125,11 @@ class BenchmarkRunner:
                     event_sink.on_model_start(model_name, config.type, total_tasks_for_model, log_file_path)
                 except Exception:
                     pass
-            
+
             with open(log_file_path, "w", encoding="utf-8") as log_f:
                 log_f.write(f"=== Benchmark Run: {model_name} ===\n")
                 log_f.write(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                
+
                 if config.type == "text":
                     prompts = self.dataset.get_text_prompts()
                     for task in prompts:
@@ -149,30 +153,34 @@ class BenchmarkRunner:
                             pass
 
                         try:
-                            success, output, duration, mem_metrics = engine.run(task['prompt'])
+                            success, output, duration, mem_metrics = engine.run(task["prompt"], cancel_event=cancel_event)
                         finally:
                             try:
                                 engine.stream_fn = None
                                 engine.metrics_fn = None
                             except Exception:
                                 pass
-                        
+
                         log_f.write(f"--- Task {task['id']} (Prompt: {task['prompt']}) ---\n")
                         log_f.write(f"Duration: {duration:.2f}s\n")
                         log_f.write(f"Output:\n{output}\n")
                         log_f.write("-" * 50 + "\n\n")
-                        
+
                         if not success:
-                            _emit_log(f"Error occurred: {output}")
-                            status = "Crash/Error"
                             parsed = {}
+                            if _is_cancelled() or _is_cancelled_output(output):
+                                status = "Cancelled"
+                                _emit_log("[Info] Cancelled current task, stopping benchmark.")
+                            else:
+                                _emit_log(f"Error occurred: {output}")
+                                status = "Crash/Error"
                             if event_sink is not None and hasattr(event_sink, "on_task_end"):
                                 try:
                                     event_sink.on_task_end(model_name, task_dict, success, output, duration, mem_metrics, parsed)
                                 except Exception:
                                     pass
                             break
-                            
+
                         parsed = parse_rkllm_metrics(output)
                         metrics = dict(parsed)
                         metrics.update(mem_metrics)
@@ -183,7 +191,7 @@ class BenchmarkRunner:
                                 event_sink.on_task_end(model_name, task_dict, success, output, duration, mem_metrics, parsed)
                             except Exception:
                                 pass
-                        
+
                 elif config.type == "vlm":
                     tasks = self.dataset.get_vlm_tasks()
                     for task in tasks:
@@ -214,30 +222,38 @@ class BenchmarkRunner:
                             pass
 
                         try:
-                            success, output, duration, mem_metrics = engine.run(prompt, image_path=task['image'])
+                            success, output, duration, mem_metrics = engine.run(
+                                prompt,
+                                image_path=task["image"],
+                                cancel_event=cancel_event,
+                            )
                         finally:
                             try:
                                 engine.stream_fn = None
                                 engine.metrics_fn = None
                             except Exception:
                                 pass
-                        
+
                         log_f.write(f"--- Task {task['id']} (Image: {task['image']} | Prompt: {prompt}) ---\n")
                         log_f.write(f"Duration: {duration:.2f}s\n")
                         log_f.write(f"Output:\n{output}\n")
                         log_f.write("-" * 50 + "\n\n")
-                        
+
                         if not success:
-                            _emit_log(f"Error occurred: {output}")
-                            status = "Crash/Error"
                             parsed = {}
+                            if _is_cancelled() or _is_cancelled_output(output):
+                                status = "Cancelled"
+                                _emit_log("[Info] Cancelled current task, stopping benchmark.")
+                            else:
+                                _emit_log(f"Error occurred: {output}")
+                                status = "Crash/Error"
                             if event_sink is not None and hasattr(event_sink, "on_task_end"):
                                 try:
                                     event_sink.on_task_end(model_name, task_dict, success, output, duration, mem_metrics, parsed)
                                 except Exception:
                                     pass
                             break
-                            
+
                         parsed = parse_rkllm_metrics(output)
                         metrics = dict(parsed)
                         metrics.update(mem_metrics)
@@ -248,7 +264,7 @@ class BenchmarkRunner:
                                 event_sink.on_task_end(model_name, task_dict, success, output, duration, mem_metrics, parsed)
                             except Exception:
                                 pass
-            
+
             _emit_log(f"Detailed raw log saved to: {log_file_path}")
             res = self._aggregate_metrics(model_name, config.type, model_metrics, status, config)
             results.append(res)
@@ -258,7 +274,7 @@ class BenchmarkRunner:
                     event_sink.on_model_end(model_name, status)
                 except Exception:
                     pass
-            
+
         self.reporter.generate_report(results)
 
         report_path = getattr(self.reporter, "report_path", "")
@@ -267,7 +283,170 @@ class BenchmarkRunner:
                 event_sink.on_run_end(report_path)
             except Exception:
                 pass
-        
+
+    def run_single_text(self, target_models=None, prompt: str = "", event_sink=None, cancel_event=None):
+        """
+        Run one custom prompt for selected Text LLM models.
+
+        This method is designed for GUI single mode. It intentionally does not
+        generate benchmark reports, but it keeps the same event_sink callback
+        protocol as run_all(), so the GUI can reuse history/output/metrics logic.
+        """
+        prompt = (prompt or "").strip()
+        if not prompt:
+            raise ValueError("Single mode prompt is empty.")
+
+        if target_models is None:
+            models_to_run = [name for name, cfg in self.models_config.items() if cfg.type == "text"]
+        else:
+            models_to_run = list(target_models)
+
+        def _emit_log(msg: str):
+            print(msg)
+            if event_sink is not None and hasattr(event_sink, "on_log"):
+                try:
+                    event_sink.on_log(msg)
+                except Exception:
+                    pass
+
+        def _is_cancelled() -> bool:
+            if cancel_event is None:
+                return False
+            try:
+                return bool(cancel_event.is_set())
+            except Exception:
+                return False
+
+        def _is_cancelled_output(output: str) -> bool:
+            return str(output or "").lstrip().startswith("Cancelled by user")
+
+        def _emit_task_stream(model_name: str, task_dict: dict, text_chunk: str):
+            if not text_chunk:
+                return
+            if event_sink is not None and hasattr(event_sink, "on_task_stream"):
+                try:
+                    event_sink.on_task_stream(model_name, task_dict, text_chunk)
+                except Exception:
+                    pass
+
+        def _emit_task_metric(model_name: str, task_dict: dict, metrics_dict: dict):
+            if not metrics_dict:
+                return
+            if event_sink is not None and hasattr(event_sink, "on_task_metric"):
+                try:
+                    event_sink.on_task_metric(model_name, task_dict, metrics_dict)
+                except Exception:
+                    pass
+
+        for model_name in models_to_run:
+            if _is_cancelled():
+                _emit_log("[Info] Cancel requested, stopping single mode before next model.")
+                break
+
+            if model_name not in self.models_config:
+                _emit_log(f"[Warn] Model {model_name} not found in config, skipping.")
+                continue
+
+            config = self.models_config[model_name]
+            if config.type != "text":
+                _emit_log(f"[Warn] Model {model_name} is not text type, skipping in single mode.")
+                continue
+
+            _emit_log("")
+            _emit_log("==========================================")
+            _emit_log(f"Running single prompt for: {model_name} ({config.type})")
+            _emit_log("==========================================")
+
+            status = "Success"
+            task_dict = {"id": "single", "prompt": prompt}
+            log_file_path = os.path.join(self.logs_dir, f"{model_name}_single.log")
+
+            try:
+                config.validate(self.workspace_root)
+            except Exception as e:
+                _emit_log(f"Validation failed: {e}")
+                status = f"Failed: {e}"
+                if event_sink is not None and hasattr(event_sink, "on_model_end"):
+                    try:
+                        event_sink.on_model_end(model_name, status)
+                    except Exception:
+                        pass
+                continue
+
+            engine = create_engine(config, self.workspace_root)
+            try:
+                engine.log_fn = _emit_log
+            except Exception:
+                pass
+
+            if event_sink is not None and hasattr(event_sink, "on_model_start"):
+                try:
+                    event_sink.on_model_start(model_name, config.type, 1, log_file_path)
+                except Exception:
+                    pass
+
+            if event_sink is not None and hasattr(event_sink, "on_task_start"):
+                try:
+                    event_sink.on_task_start(model_name, task_dict)
+                except Exception:
+                    pass
+
+            with open(log_file_path, "w", encoding="utf-8") as log_f:
+                log_f.write(f"=== Single Run: {model_name} ===\n")
+                log_f.write(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                log_f.write(f"Prompt:\n{prompt}\n\n")
+
+                try:
+                    engine.stream_fn = lambda chunk, mn=model_name, td=task_dict: _emit_task_stream(mn, td, chunk)
+                    engine.metrics_fn = lambda metrics, mn=model_name, td=task_dict: _emit_task_metric(mn, td, metrics)
+                except Exception:
+                    pass
+
+                try:
+                    success, output, duration, mem_metrics = engine.run(prompt, cancel_event=cancel_event)
+                finally:
+                    try:
+                        engine.stream_fn = None
+                        engine.metrics_fn = None
+                    except Exception:
+                        pass
+
+                log_f.write(f"Duration: {duration:.2f}s\n")
+                log_f.write(f"Output:\n{output}\n")
+                log_f.write("-" * 50 + "\n\n")
+
+                parsed = {}
+                if success:
+                    parsed = parse_rkllm_metrics(output)
+                    status = "Success"
+                elif _is_cancelled() or _is_cancelled_output(output):
+                    _emit_log("[Info] Cancelled current task, stopping single mode.")
+                    status = "Cancelled"
+                else:
+                    _emit_log(f"Error occurred: {output}")
+                    status = "Crash/Error"
+
+                if event_sink is not None and hasattr(event_sink, "on_task_end"):
+                    try:
+                        event_sink.on_task_end(model_name, task_dict, success, output, duration, mem_metrics, parsed)
+                    except Exception:
+                        pass
+
+            _emit_log(f"Single raw log saved to: {log_file_path}")
+
+            if event_sink is not None and hasattr(event_sink, "on_model_end"):
+                try:
+                    event_sink.on_model_end(model_name, status)
+                except Exception:
+                    pass
+
+        # Single mode does not generate a Markdown benchmark report.
+        if event_sink is not None and hasattr(event_sink, "on_run_end"):
+            try:
+                event_sink.on_run_end("")
+            except Exception:
+                pass
+
     def _create_empty_result(self, model_name: str, model_type: str, status: str, config=None):
         return {
             "model_name": model_name,
@@ -282,29 +461,29 @@ class BenchmarkRunner:
             "total_peak_mb": 0.0,
             "avg_cpu_usage_percent": 0.0,
             "npu_core_num": 0,
-            "status": status
+            "status": status,
         }
-        
+
     def _aggregate_metrics(self, model_name: str, model_type: str, metrics_list: list, status: str, config=None):
         if not metrics_list:
             return self._create_empty_result(model_name, model_type, status, config)
-            
+
         total_prefill = sum(m.get("prefill_tps", 0.0) for m in metrics_list)
         total_gen = sum(m.get("generate_tps", 0.0) for m in metrics_list)
         peak_memories = [m.get("peak_memory_gb", 0.0) for m in metrics_list]
         max_peak_memory = max(peak_memories) if peak_memories else 0.0
-        
+
         # Max is more representative for memory usages across different prompts
         max_model_data = max([m.get("model_data_mb", 0.0) for m in metrics_list])
         max_kv_cache = max([m.get("kv_cache_overhead_mb", 0.0) for m in metrics_list])
         max_total_peak = max([m.get("total_peak_mb", 0.0) for m in metrics_list])
         avg_cpu_usage = sum(m.get("avg_cpu_usage_percent", 0.0) for m in metrics_list) / len(metrics_list)
-        
+
         count = len(metrics_list)
 
         npu_cores = [m.get("npu_core_num", 0) for m in metrics_list]
         max_npu_core = max(npu_cores) if npu_cores else 0
-        
+
         return {
             "model_name": model_name,
             "type": model_type,
@@ -318,5 +497,5 @@ class BenchmarkRunner:
             "total_peak_mb": max_total_peak,
             "avg_cpu_usage_percent": avg_cpu_usage,
             "npu_core_num": max_npu_core,
-            "status": status
+            "status": status,
         }

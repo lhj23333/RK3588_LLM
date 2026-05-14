@@ -3,6 +3,7 @@ import subprocess
 import time
 import codecs
 import threading
+import select
 from benchmark.profiler.cpu_tracker import ProcessCPUTracker
 from benchmark.profiler.memory_tracker import ProcessDRAMTracker
 
@@ -41,7 +42,7 @@ class BaseEngine:
         except Exception:
             pass
 
-    def run(self, prompt: str, timeout: int = 900, **kwargs):
+    def run(self, prompt: str, timeout: int = 900, cancel_event=None, **kwargs):
         cmd = self._build_cmd(**kwargs)
 
         def _emit_stream(text: str):
@@ -53,6 +54,14 @@ class BaseEngine:
                 self.stream_fn(text)
             except Exception:
                 pass
+
+        def _is_cancelled() -> bool:
+            if cancel_event is None:
+                return False
+            try:
+                return bool(cancel_event.is_set())
+            except Exception:
+                return False
         
         start_time = time.time()
         process = None
@@ -78,14 +87,93 @@ class BaseEngine:
             output_bytes = bytearray()
             output_lock = threading.Lock()
             found_ready = False
+
+            def _decode_output() -> str:
+                with output_lock:
+                    return bytes(output_bytes).decode("utf-8", errors="replace")
+
+            def _stop_process():
+                if process is None or process.poll() is not None:
+                    return
+                try:
+                    process.terminate()
+                    process.wait(timeout=2.0)
+                except subprocess.TimeoutExpired:
+                    try:
+                        process.kill()
+                        process.wait(timeout=2.0)
+                    except Exception:
+                        pass
+                except Exception:
+                    try:
+                        process.kill()
+                    except Exception:
+                        pass
+
+            def _cancelled_result():
+                nonlocal live_peak_mb, last_avg_cpu_usage
+                duration = time.time() - start_time
+                avg_cpu_usage = self.cpu_tracker.stop()
+                if avg_cpu_usage <= 0:
+                    avg_cpu_usage = last_avg_cpu_usage
+
+                current_dram_mb = self.tracker.get_process_dram_mb()
+                if current_dram_mb > 0:
+                    live_peak_mb = max(live_peak_mb, current_dram_mb)
+
+                runtime_buffer_mb = None
+                if init_dram_mb is not None and live_peak_mb > 0:
+                    runtime_buffer_mb = max(0.0, live_peak_mb - init_dram_mb)
+
+                self._emit_metrics(
+                    {
+                        "stage": "cancelled",
+                        "status": "cancelled",
+                        "init_dram_mb": init_dram_mb,
+                        "current_dram_mb": current_dram_mb if current_dram_mb > 0 else None,
+                        "runtime_buffer_mb": runtime_buffer_mb,
+                        "total_peak_mb": live_peak_mb if live_peak_mb > 0 else None,
+                        "avg_cpu_usage_percent": avg_cpu_usage if avg_cpu_usage > 0 else None,
+                        "prefill_tps": None,
+                        "generate_tps": None,
+                        "duration_s": duration,
+                    }
+                )
+
+                mem_metrics = {
+                    "model_data_mb": init_dram_mb,
+                    "kv_cache_overhead_mb": runtime_buffer_mb,
+                    "total_peak_mb": live_peak_mb if live_peak_mb > 0 else None,
+                    "avg_cpu_usage_percent": avg_cpu_usage if avg_cpu_usage > 0 else None,
+                }
+                out_str = _decode_output()
+                if out_str.strip():
+                    out_str = f"Cancelled by user\nOutput:\n{out_str}"
+                else:
+                    out_str = "Cancelled by user"
+                return False, out_str, duration, mem_metrics
             
             # Wait for "user" prompt indicating model is fully loaded and ready
             while True:
+                if _is_cancelled():
+                    _stop_process()
+                    return _cancelled_result()
+
                 # Check for timeout
                 if time.time() - start_time > timeout:
                     break
-                    
-                char = process.stdout.read(1) if process.stdout else b''
+
+                if process.poll() is not None:
+                    break
+
+                if process.stdout is None:
+                    break
+
+                readable, _, _ = select.select([process.stdout], [], [], 0.05)
+                if not readable:
+                    continue
+
+                char = process.stdout.read(1)
                 if not char:
                     break
                     
@@ -105,6 +193,10 @@ class BaseEngine:
                 
             # [T1 Stage] Model loaded, KV-Cache pre-allocated completely
             time.sleep(0.5) # Let memory stabilize
+
+            if _is_cancelled():
+                _stop_process()
+                return _cancelled_result()
             
             # 此时 RKLLM 已经完成了模型的 load 并且根据 context len 预分配了完整的 KV-Cache DRAM
             init_dram_mb = self.tracker.get_process_dram_mb()
@@ -164,6 +256,11 @@ class BaseEngine:
             metrics_emit_interval_s = 0.5
             last_metrics_emit = 0.0
             while True:
+                if _is_cancelled():
+                    _stop_process()
+                    reader_thread.join(timeout=2.0)
+                    return _cancelled_result()
+
                 self.cpu_tracker.sample()
                 now = time.time()
                 if init_dram_mb is not None and now - last_metrics_emit >= metrics_emit_interval_s:

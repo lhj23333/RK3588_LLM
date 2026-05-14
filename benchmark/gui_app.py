@@ -174,6 +174,10 @@ def extract_answer(output_text: str) -> str:
     return raw
 
 
+def is_cancelled_output(output_text: str) -> bool:
+    return str(output_text or "").lstrip().startswith("Cancelled by user")
+
+
 @dataclass
 class TaskRecord:
     model_name: str
@@ -235,24 +239,48 @@ class QtEventSink(QObject):
 class BenchmarkWorker(QObject):
     finished = pyqtSignal()
 
-    def __init__(self, workspace_root: str, config_path: str, target_models: List[str]):
+    def __init__(
+        self,
+        workspace_root: str,
+        config_path: str,
+        target_models: List[str],
+        run_mode: str = "benchmark",
+        single_prompt: str = "",
+    ):
         super().__init__()
         self.workspace_root = workspace_root
         self.config_path = config_path
         self.target_models = target_models
+        self.run_mode = run_mode
+        self.single_prompt = single_prompt
         self.cancel_event = threading.Event()
         self.sink = QtEventSink()
 
     def request_cancel(self):
         self.cancel_event.set()
-        self.sink.on_log("[GUI] Stop requested. Will stop after current task finishes.")
+        self.sink.on_log("[GUI] Stop requested. Stopping current task...")
 
     def run(self):
         try:
             runner = BenchmarkRunner(self.workspace_root, self.config_path)
+            models_to_run = self.target_models if self.target_models else list(runner.models_config.keys())
+
+            if self.run_mode == "single":
+                text_models = [
+                    name
+                    for name in models_to_run
+                    if runner.models_config.get(name) and runner.models_config[name].type == "text"
+                ]
+                self.sink.progress_total.emit(int(len(text_models)))
+                runner.run_single_text(
+                    text_models,
+                    self.single_prompt,
+                    event_sink=self.sink,
+                    cancel_event=self.cancel_event,
+                )
+                return
 
             total = 0
-            models_to_run = self.target_models if self.target_models else list(runner.models_config.keys())
             for name in models_to_run:
                 cfg = runner.models_config.get(name)
                 if not cfg:
@@ -274,6 +302,9 @@ class BenchmarkGui(QMainWindow):
     MODE_TEXT = "text"
     MODE_VLM = "vlm"
 
+    RUN_MODE_BENCHMARK = "benchmark"
+    RUN_MODE_SINGLE = "single"
+
     def __init__(self, workspace_root: str, config_path: str, preselected_models: Optional[List[str]] = None):
         super().__init__()
         self.workspace_root = workspace_root
@@ -288,12 +319,14 @@ class BenchmarkGui(QMainWindow):
         }
 
         self.current_mode = self._infer_initial_mode()
+        self.run_mode = self.RUN_MODE_BENCHMARK
 
         self.records: List[TaskRecord] = []
         self.total_tasks_expected = 0
         self.tasks_completed = 0
         self._run_has_error = False
         self._stop_requested = False
+        self._active_run_mode = self.RUN_MODE_BENCHMARK
 
         self._current_pixmap: Optional[QPixmap] = None
         self._current_image_path: Optional[str] = None
@@ -317,6 +350,7 @@ class BenchmarkGui(QMainWindow):
         self._build_ui()
         self._apply_styles()
         self._sync_mode_radio_buttons()
+        self._refresh_mode_cards()
 
     def _build_ui(self):
         root = QWidget()
@@ -378,7 +412,10 @@ class BenchmarkGui(QMainWindow):
         text_card_layout.setSpacing(4)
         self.text_option_card.setLayout(text_card_layout)
 
-        text_desc = QLabel("Text mode focuses on prompt, model output, and task history. Image area is hidden.")
+        text_desc = QLabel(
+            "Text mode supports benchmark dataset prompts and single custom prompt inference. "
+            "Image area is hidden."
+        )
         text_desc.setObjectName("ModeHint")
         text_desc.setWordWrap(True)
 
@@ -451,6 +488,12 @@ class BenchmarkGui(QMainWindow):
         self.btn_select_none = QPushButton("Clear Selection")
         self.btn_clear_history = QPushButton("Clear History")
         self.btn_clear_history.setProperty("role", "ghost")
+
+        self.btn_run_mode = QPushButton("Run Mode: Benchmark ON")
+        self.btn_run_mode.setCheckable(True)
+        self.btn_run_mode.setChecked(True)
+        self.btn_run_mode.setProperty("role", "ghost")
+
         self.btn_start = QPushButton("Start")
         self.btn_start.setProperty("role", "primary")
         self.btn_stop = QPushButton("Stop")
@@ -464,6 +507,7 @@ class BenchmarkGui(QMainWindow):
         controls.addWidget(self.btn_select_all)
         controls.addWidget(self.btn_select_none)
         controls.addWidget(self.btn_clear_history)
+        controls.addWidget(self.btn_run_mode)
         controls.addWidget(self.btn_start)
         controls.addWidget(self.btn_stop)
         controls.addWidget(self.progress, stretch=1)
@@ -516,7 +560,9 @@ class BenchmarkGui(QMainWindow):
         image_layout.setContentsMargins(0, 0, 0, 0)
         image_layout.setSpacing(6)
         self.image_section.setLayout(image_layout)
-        image_layout.addWidget(QLabel("Image"))
+        image_title = QLabel("Image")
+        image_title.setObjectName("SectionTitle")
+        image_layout.addWidget(image_title)
 
         self.image_label = QLabel("No image")
         self.image_label.setObjectName("ImagePreview")
@@ -536,6 +582,18 @@ class BenchmarkGui(QMainWindow):
         self.prompt_edit.setPlaceholderText("Prompt will appear here...")
         middle_layout.addWidget(self.prompt_edit, stretch=1)
 
+        answer_title = QLabel("Model Output (Extracted Answer)")
+        answer_title.setObjectName("SectionTitle")
+        middle_layout.addWidget(answer_title)
+        self.answer_edit = QPlainTextEdit()
+        self.answer_edit.setObjectName("AnswerEdit")
+        self.answer_edit.setReadOnly(True)
+        self.answer_edit.setMaximumBlockCount(20000)
+        self.answer_edit.setPlaceholderText("Model output will appear here...")
+        middle_layout.addWidget(self.answer_edit, stretch=2)
+
+        h_split.addWidget(middle_panel)
+
         right_panel = QFrame()
         right_panel.setObjectName("PanelCard")
         right_panel.setMinimumWidth(320)
@@ -548,7 +606,7 @@ class BenchmarkGui(QMainWindow):
         runtime_title.setObjectName("SectionTitle")
         right_layout.addWidget(runtime_title)
 
-        runtime_hint = QLabel("Live profiler snapshots for the current benchmark task.")
+        runtime_hint = QLabel("Live profiler snapshots for the current task.")
         runtime_hint.setObjectName("ModeHint")
         runtime_hint.setWordWrap(True)
         right_layout.addWidget(runtime_hint)
@@ -593,17 +651,6 @@ class BenchmarkGui(QMainWindow):
         right_layout.addWidget(self.runtime_panel)
         right_layout.addStretch(1)
 
-        answer_title = QLabel("Model Output (Extracted Answer)")
-        answer_title.setObjectName("SectionTitle")
-        middle_layout.addWidget(answer_title)
-        self.answer_edit = QPlainTextEdit()
-        self.answer_edit.setObjectName("AnswerEdit")
-        self.answer_edit.setReadOnly(True)
-        self.answer_edit.setMaximumBlockCount(20000)
-        self.answer_edit.setPlaceholderText("Model output will appear here...")
-        middle_layout.addWidget(self.answer_edit, stretch=2)
-
-        h_split.addWidget(middle_panel)
         h_split.addWidget(right_panel)
         h_split.setStretchFactor(0, 0)
         h_split.setStretchFactor(1, 1)
@@ -621,6 +668,7 @@ class BenchmarkGui(QMainWindow):
         self.btn_select_all.clicked.connect(self._select_all_models)
         self.btn_select_none.clicked.connect(self._select_none_models)
         self.btn_clear_history.clicked.connect(self._clear_history)
+        self.btn_run_mode.toggled.connect(self._on_run_mode_toggled)
         self.btn_start.clicked.connect(self._start)
         self.btn_stop.clicked.connect(self._stop)
         self.history_list.currentRowChanged.connect(self._on_history_selected)
@@ -766,6 +814,11 @@ class BenchmarkGui(QMainWindow):
                 background: #f5f8fc;
                 border: 1px solid #d1dbe8;
             }
+            QPushButton[role="ghost"]:checked {
+                color: #ffffff;
+                background: #2f70ad;
+                border: 1px solid #215f9a;
+            }
             QListWidget,
             QPlainTextEdit {
                 background: #fafcff;
@@ -776,6 +829,9 @@ class BenchmarkGui(QMainWindow):
                 color: #1f2937;
                 selection-background-color: #2f70ad;
                 selection-color: #ffffff;
+            }
+            QPlainTextEdit:read-only {
+                background: #f5f8fc;
             }
             QListWidget {
                 selection-background-color: #c8daf3;
@@ -878,404 +934,135 @@ class BenchmarkGui(QMainWindow):
             """
         )
 
-    def _set_run_state(self, state: str, text: str):
-        self.run_badge.setText(text)
-        self.run_badge.setProperty("state", state)
-        self.run_badge.style().unpolish(self.run_badge)
-        self.run_badge.style().polish(self.run_badge)
-        self.run_badge.update()
+    def _infer_initial_mode(self) -> str:
+        selected = [m for m in self.preselected_models if m != "all"]
+        if not selected:
+            return self.MODE_TEXT
+
+        selected_types = {
+            self._model_type_by_name.get(model_name)
+            for model_name in selected
+            if self._model_type_by_name.get(model_name)
+        }
+        if selected_types == {self.MODE_VLM}:
+            return self.MODE_VLM
+        return self.MODE_TEXT
+
+    def _sync_mode_radio_buttons(self):
+        self.radio_text.setChecked(self.current_mode == self.MODE_TEXT)
+        self.radio_vlm.setChecked(self.current_mode == self.MODE_VLM)
 
     def _refresh_mode_cards(self):
         text_selected = self.radio_text.isChecked()
         vlm_selected = self.radio_vlm.isChecked()
-
         self.text_option_card.setProperty("selected", "true" if text_selected else "false")
         self.vlm_option_card.setProperty("selected", "true" if vlm_selected else "false")
-
         self.text_option_card.style().unpolish(self.text_option_card)
         self.text_option_card.style().polish(self.text_option_card)
-        self.text_option_card.update()
-
         self.vlm_option_card.style().unpolish(self.vlm_option_card)
         self.vlm_option_card.style().polish(self.vlm_option_card)
-        self.vlm_option_card.update()
 
-    def _friendly_mode_name(self, mode: Optional[str] = None) -> str:
-        target = (mode or self.current_mode or "").strip().lower()
-        if target == self.MODE_VLM:
-            return "Multimodal Model (VLM)"
-        return "Text LLM"
-
-    def _is_multimodal_mode(self) -> bool:
-        return self.current_mode == self.MODE_VLM
-
-    def _infer_initial_mode(self) -> str:
-        if not self.preselected_models or "all" in self.preselected_models:
-            return self.MODE_TEXT
-
-        detected_types = set()
-        for model_name in self.preselected_models:
-            model_type = self._model_type_by_name.get(model_name)
-            if model_type in (self.MODE_TEXT, self.MODE_VLM):
-                detected_types.add(model_type)
-
-        if len(detected_types) == 1:
-            return next(iter(detected_types))
-        return self.MODE_TEXT
-
-    def _sync_mode_radio_buttons(self):
-        if self.current_mode == self.MODE_VLM:
-            self.radio_vlm.setChecked(True)
+        if text_selected:
+            self.mode_hint_label.setText(
+                "Text LLM page: ON = benchmark dataset mode, OFF = single custom prompt mode."
+            )
+            self.btn_enter_mode.setText("Enter Text LLM")
         else:
-            self.radio_text.setChecked(True)
-
-        if "all" in self.preselected_models:
-            self.mode_hint_label.setText("CLI preselection: all models.")
-        else:
-            candidates = [name for name in self.preselected_models if name in self._model_type_by_name]
-            if not candidates:
-                self.mode_hint_label.setText("CLI preselection: no explicit model list.")
-            else:
-                preview = ", ".join(candidates[:4])
-                if len(candidates) > 4:
-                    preview += ", ..."
-                self.mode_hint_label.setText(f"CLI preselection: {preview}")
-        self._refresh_mode_cards()
-
-    def _models_for_mode(self, mode: str) -> List[str]:
-        normalized = (mode or "").strip().lower()
-        names = [model_name for model_name, model_type in self._model_type_by_name.items() if model_type == normalized]
-        return sorted(names)
-
-    def _load_models_for_mode(self):
-        names = self._models_for_mode(self.current_mode)
-        self.model_list.clear()
-        for model_name in names:
-            self.model_list.addItem(model_name)
-
-        if not names:
-            return
-
-        if "all" in self.preselected_models:
-            self.model_list.clearSelection()
-            self.model_list.setCurrentRow(-1)
-            return
-
-        wanted = {name for name in self.preselected_models if name in names}
-        if not wanted:
-            self.model_list.clearSelection()
-            self.model_list.setCurrentRow(-1)
-            return
-
-        for i in range(self.model_list.count()):
-            item = self.model_list.item(i)
-            if item and item.text() in wanted:
-                item.setSelected(True)
-        self.model_list.setCurrentRow(-1)
-
-    def _update_mode_badge(self):
-        mode_name = self._friendly_mode_name()
-        self.mode_badge.setText(f"Mode: {mode_name}")
-        self.setWindowTitle(f"RK3588 Benchmark GUI - {mode_name}")
-
-    def _apply_mode_specific_layout(self):
-        show_image = self._is_multimodal_mode()
-        self.image_section.setVisible(show_image)
-        if not show_image:
-            self._set_image(None)
-
-    def _prepare_benchmark_page(self, mode: str) -> bool:
-        normalized = (mode or self.MODE_TEXT).strip().lower()
-        if normalized not in (self.MODE_TEXT, self.MODE_VLM):
-            normalized = self.MODE_TEXT
-        self.current_mode = normalized
-
-        self._update_mode_badge()
-        self._apply_mode_specific_layout()
-        self._load_models_for_mode()
-
-        if self.model_list.count() == 0:
-            return False
-
-        self._reset_run_state()
-        self.log_edit.clear()
-        self._set_run_state("ready", "State: Ready")
-        self._append_log(f"[GUI] Ready for {self._friendly_mode_name()} benchmark.")
-        return True
+            self.mode_hint_label.setText("VLM page keeps the existing benchmark flow.")
+            self.btn_enter_mode.setText("Enter VLM Benchmark")
 
     def _confirm_mode_selection(self):
-        mode = self.MODE_VLM if self.radio_vlm.isChecked() else self.MODE_TEXT
-        if not self._prepare_benchmark_page(mode):
-            QMessageBox.warning(
-                self,
-                "No available models",
-                f"No models of type '{self._friendly_mode_name(mode)}' were found in config.",
-            )
+        if self._worker is not None:
+            QMessageBox.information(self, "Running", "Please stop or wait for the current run to finish.")
             return
+
+        self.current_mode = self.MODE_VLM if self.radio_vlm.isChecked() else self.MODE_TEXT
+        self._populate_model_list()
+        self._apply_mode_specific_layout()
+        self._refresh_run_mode_ui()
         self.stack.setCurrentWidget(self.page_benchmark)
 
     def _go_to_mode_selection(self):
-        if self._is_running():
-            QMessageBox.information(self, "Benchmark running", "Stop the current run before changing mode.")
+        if self._worker is not None:
+            QMessageBox.information(self, "Running", "Please stop or wait for the current run to finish.")
             return
-        self._sync_mode_radio_buttons()
         self.stack.setCurrentWidget(self.page_mode)
 
-    def _is_running(self) -> bool:
-        return self._worker_thread is not None and self._worker_thread.isRunning()
+    def _populate_model_list(self):
+        self.model_list.clear()
+        selected_names = set(m for m in self.preselected_models if m != "all")
+        has_explicit_selection = bool(selected_names)
+
+        for model_name in sorted(self._all_models_config.keys()):
+            model_type = self._model_type_by_name.get(model_name, "")
+            if model_type != self.current_mode:
+                continue
+
+            item = QListWidgetItem(model_name)
+            item.setToolTip(f"{model_name} ({model_type})")
+            self.model_list.addItem(item)
+
+            should_select = not has_explicit_selection or model_name in selected_names
+            item.setSelected(should_select)
+
+        if self.model_list.count() == 0:
+            self._append_log(f"[GUI] No model found for mode: {self.current_mode}")
+
+    def _apply_mode_specific_layout(self):
+        is_text_mode = self.current_mode == self.MODE_TEXT
+        self.mode_badge.setText("Mode: Text LLM" if is_text_mode else "Mode: VLM")
+        self.image_section.setVisible(not is_text_mode)
+        if is_text_mode:
+            self._set_image(None)
+        self._reset_task_display(clear_prompt=not (is_text_mode and self.run_mode == self.RUN_MODE_SINGLE))
+
+    def _on_run_mode_toggled(self, checked: bool):
+        self.run_mode = self.RUN_MODE_BENCHMARK if checked else self.RUN_MODE_SINGLE
+        self._refresh_run_mode_ui()
+
+    def _refresh_run_mode_ui(self):
+        is_text_mode = self.current_mode == self.MODE_TEXT
+        self.btn_run_mode.setVisible(is_text_mode)
+
+        if not is_text_mode:
+            self.run_mode = self.RUN_MODE_BENCHMARK
+            self.btn_run_mode.blockSignals(True)
+            self.btn_run_mode.setChecked(True)
+            self.btn_run_mode.setText("Run Mode: Benchmark ON")
+            self.btn_run_mode.blockSignals(False)
+            self.prompt_edit.setReadOnly(True)
+            self.prompt_edit.setPlaceholderText("Prompt will appear here...")
+            self.btn_start.setText("Start")
+            return
+
+        is_benchmark = self.run_mode == self.RUN_MODE_BENCHMARK
+        self.btn_run_mode.blockSignals(True)
+        self.btn_run_mode.setChecked(is_benchmark)
+        self.btn_run_mode.setText("Run Mode: Benchmark ON" if is_benchmark else "Run Mode: Single OFF")
+        self.btn_run_mode.blockSignals(False)
+
+        self.prompt_edit.setReadOnly(is_benchmark)
+        self.prompt_edit.setPlaceholderText(
+            "Prompt will appear here..." if is_benchmark else "Input custom prompt here for single inference..."
+        )
+        self.btn_start.setText("Start Benchmark" if is_benchmark else "Run Single")
 
     def _select_all_models(self):
         for i in range(self.model_list.count()):
-            item = self.model_list.item(i)
-            if item:
-                item.setSelected(True)
+            self.model_list.item(i).setSelected(True)
 
     def _select_none_models(self):
         self.model_list.clearSelection()
 
-    def _append_log(self, msg: str):
-        self.log_edit.appendPlainText(msg.rstrip())
-        sb = self.log_edit.verticalScrollBar()
-        sb.setValue(sb.maximum())
-
-    def _set_image(self, abs_path: Optional[str]):
-        self._current_image_path = abs_path
-        self._current_pixmap = None
-        if not abs_path:
-            self.image_label.setText("No image")
-            self.image_label.setPixmap(QPixmap())
-            return
-        if not os.path.isfile(abs_path):
-            self.image_label.setText(f"Image not found:\n{abs_path}")
-            self.image_label.setPixmap(QPixmap())
-            return
-
-        pix = QPixmap(abs_path)
-        if pix.isNull():
-            self.image_label.setText(f"Failed to load image:\n{abs_path}")
-            self.image_label.setPixmap(QPixmap())
-            return
-
-        self._current_pixmap = pix
-        self._rescale_pixmap()
-
-    def _rescale_pixmap(self):
-        if not self._current_pixmap:
-            return
-        scaled = self._current_pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.image_label.setPixmap(scaled)
-        self.image_label.setText("")
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._rescale_pixmap()
-
     def _selected_models(self) -> List[str]:
-        items = self.model_list.selectedItems()
-        return [item.text() for item in items if item and item.text()]
-
-    def _blank_runtime_metrics(self, status: str = "idle", stage: str = "idle") -> Dict[str, Any]:
-        return {
-            "stage": stage,
-            "status": status,
-            "init_dram_mb": None,
-            "current_dram_mb": None,
-            "runtime_buffer_mb": None,
-            "total_peak_mb": None,
-            "avg_cpu_usage_percent": None,
-            "prefill_tps": None,
-            "generate_tps": None,
-            "duration_s": None,
-        }
-
-    def _merge_runtime_metrics(
-        self, base_metrics: Optional[Dict[str, Any]], new_metrics: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        merged = dict(base_metrics or self._blank_runtime_metrics())
-        if not new_metrics:
-            return merged
-        for key, value in new_metrics.items():
-            if value is not None:
-                merged[key] = value
-        return merged
-
-    def _format_runtime_status(self, stage: Optional[str], status: Optional[str]) -> str:
-        stage_text = (stage or "").strip() or "idle"
-        status_text = (status or "").strip() or "idle"
-        return f"{stage_text.replace('_', ' ').title()} / {status_text.replace('_', ' ').title()}"
-
-    def _format_runtime_value(self, key: str, value: Any, metrics: Dict[str, Any]) -> str:
-        if key == "stage_status":
-            return self._format_runtime_status(metrics.get("stage"), metrics.get("status"))
-        if value is None:
-            return "--"
-        try:
-            if key in {"current_dram_mb", "init_dram_mb", "runtime_buffer_mb", "total_peak_mb"}:
-                return f"{float(value):.2f} MB"
-            if key == "avg_cpu_usage_percent":
-                return f"{float(value):.2f}%"
-            if key in {"prefill_tps", "generate_tps"}:
-                return f"{float(value):.2f} token/s"
-            if key == "duration_s":
-                return f"{float(value):.2f}s"
-        except Exception:
-            return str(value)
-        return str(value)
-
-    def _update_runtime_panel(self, metrics: Optional[Dict[str, Any]] = None):
-        runtime_metrics = self._merge_runtime_metrics(self._blank_runtime_metrics(), metrics)
-        for key, label in self._runtime_value_labels.items():
-            value = runtime_metrics.get(key if key != "stage_status" else "stage")
-            label.setText(self._format_runtime_value(key, value, runtime_metrics))
-
-    def _current_runtime_metrics_for_task(self, task_key: Optional[str], prefer_final: bool = False) -> Dict[str, Any]:
-        if not task_key:
-            return self._blank_runtime_metrics()
-        if prefer_final and task_key in self._final_metrics_by_task:
-            return self._merge_runtime_metrics(None, self._final_metrics_by_task.get(task_key))
-        if task_key in self._live_metrics_by_task:
-            return self._merge_runtime_metrics(None, self._live_metrics_by_task.get(task_key))
-        if task_key in self._final_metrics_by_task:
-            return self._merge_runtime_metrics(None, self._final_metrics_by_task.get(task_key))
-        return self._blank_runtime_metrics()
-
-    def _history_item_payload(self, kind: str, task_key: str, record_index: Optional[int] = None) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"kind": kind, "task_key": task_key}
-        if record_index is not None:
-            payload["record_index"] = int(record_index)
-        return payload
-
-    def _format_history_label(
-        self,
-        model_name: str,
-        task_id: Any,
-        prompt: str,
-        image_abs_path: Optional[str],
-        duration_s: Optional[float],
-        status: str,
-    ) -> str:
-        duration_text = f" {float(duration_s):.2f}s" if duration_s is not None else ""
-        if self._is_multimodal_mode() and image_abs_path:
-            target = os.path.basename(image_abs_path)
-        else:
-            target = " ".join((prompt or "").split()) or "(empty prompt)"
-            if len(target) > 28:
-                target = target[:28] + "..."
-        return f"[{model_name}] #{task_id} {target}{duration_text} {status}"
-
-    def _upsert_live_history_item(self, model_name: str, task_id: Any, prompt: str, image_abs_path: Optional[str]):
-        task_key = f"{model_name}#{task_id}"
-        label = self._format_history_label(model_name, task_id, prompt, image_abs_path, None, "Running")
-        if self._live_history_item is None:
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, self._history_item_payload("live", task_key))
-            self.history_list.addItem(item)
-            self._live_history_item = item
-            return
-        self._live_history_item.setText(label)
-        self._live_history_item.setData(Qt.UserRole, self._history_item_payload("live", task_key))
-
-    def _finalize_live_history_item(
-        self,
-        model_name: str,
-        task_id: Any,
-        prompt: str,
-        image_abs_path: Optional[str],
-        duration_s: float,
-        status: str,
-        record_index: int,
-    ):
-        task_key = f"{model_name}#{task_id}"
-        label = self._format_history_label(model_name, task_id, prompt, image_abs_path, duration_s, status)
-        if self._live_history_item is not None:
-            payload = self._live_history_item.data(Qt.UserRole)
-            if isinstance(payload, dict) and payload.get("task_key") == task_key:
-                self._live_history_item.setText(label)
-                self._live_history_item.setData(Qt.UserRole, self._history_item_payload("record", task_key, record_index))
-                self._live_history_item = None
-                return
-
-        item = QListWidgetItem(label)
-        item.setData(Qt.UserRole, self._history_item_payload("record", task_key, record_index))
-        self.history_list.addItem(item)
-
-    def _show_task_content(
-        self,
-        task_key: Optional[str],
-        prompt: str,
-        answer: str,
-        image_abs_path: Optional[str],
-        runtime_metrics: Optional[Dict[str, Any]] = None,
-    ):
-        self._display_task_key = task_key
-        self.prompt_edit.setPlainText(prompt)
-        self.answer_edit.setPlainText(answer)
-        sb = self.answer_edit.verticalScrollBar()
-        sb.setValue(sb.maximum())
-        self._update_runtime_panel(runtime_metrics)
-        if self._is_multimodal_mode():
-            self._set_image(image_abs_path)
-        else:
-            self._set_image(None)
-
-    def _show_live_task(self):
-        if not self._current_task_key:
-            return
-        self._history_view_locked = False
-        self.history_list.blockSignals(True)
-        self.history_list.clearSelection()
-        self.history_list.setCurrentRow(-1)
-        self.history_list.blockSignals(False)
-        prompt = self._task_prompt_by_key.get(self._current_task_key, "")
-        answer = self._stream_answer_by_task.get(self._current_task_key, "")
-        image_abs_path = self._task_image_by_key.get(self._current_task_key)
-        runtime_metrics = self._current_runtime_metrics_for_task(self._current_task_key)
-        self._show_task_content(self._current_task_key, prompt, answer, image_abs_path, runtime_metrics)
+        return [item.text() for item in self.model_list.selectedItems()]
 
     def _clear_history(self):
-        self.records.clear()
-        live_payload = None
-        if self._is_running() and self._current_task_key:
-            live_payload = self._history_item_payload("live", self._current_task_key)
-        live_label = None
-        if live_payload is not None:
-            live_prompt = self._task_prompt_by_key.get(self._current_task_key, "")
-            live_image = self._task_image_by_key.get(self._current_task_key)
-            model_name, _, task_id = self._current_task_key.partition("#")
-            live_label = self._format_history_label(model_name, task_id, live_prompt, live_image, None, "Running")
-
-        self.history_list.blockSignals(True)
-        self.history_list.clear()
-        self.history_list.clearSelection()
-        self.history_list.setCurrentRow(-1)
-        self._live_history_item = None
-        if live_payload is not None and live_label is not None:
-            self._live_history_item = QListWidgetItem(live_label)
-            self._live_history_item.setData(Qt.UserRole, live_payload)
-            self.history_list.addItem(self._live_history_item)
-        self.history_list.blockSignals(False)
-
-        if self._is_running() and self._current_task_key:
-            self._show_live_task()
+        if self._worker is not None:
+            QMessageBox.information(self, "Running", "Cannot clear history while a task is running.")
             return
-
-        self._history_view_locked = False
-        self._display_task_key = None
-        self.prompt_edit.setPlainText("")
-        self.answer_edit.setPlainText("")
-        self._update_runtime_panel(self._blank_runtime_metrics())
-        self._set_image(None)
-
-    def _reset_run_state(self):
         self.records.clear()
         self.history_list.clear()
-        self.history_list.clearSelection()
-        self.history_list.setCurrentRow(-1)
-        self._run_has_error = False
-        self._stop_requested = False
-        self._history_view_locked = False
-        self._current_task_key = None
-        self._display_task_key = None
         self._stream_raw_by_task.clear()
         self._stream_answer_by_task.clear()
         self._task_prompt_by_key.clear()
@@ -1283,38 +1070,87 @@ class BenchmarkGui(QMainWindow):
         self._live_metrics_by_task.clear()
         self._final_metrics_by_task.clear()
         self._live_history_item = None
-        self.prompt_edit.setPlainText("")
-        self.answer_edit.setPlainText("")
-        self._update_runtime_panel(self._blank_runtime_metrics())
-        self._set_image(None)
+        self._reset_task_display(clear_prompt=(self.run_mode != self.RUN_MODE_SINGLE))
+        self._clear_runtime_metrics()
+
+    def _start(self):
+        if self._worker is not None:
+            QMessageBox.information(self, "Running", "A benchmark is already running.")
+            return
+
+        target_models = self._selected_models()
+        if not target_models:
+            QMessageBox.warning(self, "No model selected", "Please select at least one model.")
+            return
+
+        run_mode = self.RUN_MODE_BENCHMARK
+        single_prompt = ""
+        if self.current_mode == self.MODE_TEXT:
+            run_mode = self.run_mode
+
+        if run_mode == self.RUN_MODE_SINGLE:
+            single_prompt = self.prompt_edit.toPlainText().strip()
+            if not single_prompt:
+                QMessageBox.warning(
+                    self,
+                    "Empty Prompt",
+                    "Please input a custom prompt before starting single mode.",
+                )
+                return
+
+        self._active_run_mode = run_mode
+        self._run_has_error = False
+        self._stop_requested = False
         self.tasks_completed = 0
         self.total_tasks_expected = 0
         self.progress.setRange(0, 1)
         self.progress.setValue(0)
-
-    def _start(self):
-        models = self._selected_models()
-        if not models:
-            QMessageBox.warning(
-                self,
-                "No models selected",
-                f"Please select at least one {self._friendly_mode_name()} model to run.",
-            )
-            return
-        if self._is_running():
-            QMessageBox.information(self, "Already running", "Benchmark is already running.")
-            return
-
-        self._reset_run_state()
         self.log_edit.clear()
-        self._set_run_state("running", "State: Running")
-        self._append_log(f"[GUI] Starting {self._friendly_mode_name()} benchmark for {len(models)} model(s)...")
+        self.answer_edit.clear()
+        self._clear_runtime_metrics()
+        self._current_task_key = None
+        self._display_task_key = None
+        self._history_view_locked = False
+        self._stream_raw_by_task.clear()
+        self._stream_answer_by_task.clear()
+        self._task_prompt_by_key.clear()
+        self._task_image_by_key.clear()
+        self._live_metrics_by_task.clear()
+        self._final_metrics_by_task.clear()
+        self._live_history_item = None
+        self.records.clear()
+        self.history_list.clear()
 
-        self._worker = BenchmarkWorker(self.workspace_root, self.config_path, models)
+        if run_mode == self.RUN_MODE_BENCHMARK:
+            self.prompt_edit.clear()
+        else:
+            self.prompt_edit.setPlainText(single_prompt)
+
+        self._set_run_state(True)
+        self._set_run_badge("running", "State: Running")
+        self._append_log(
+            f"[GUI] Starting {'single prompt' if run_mode == self.RUN_MODE_SINGLE else 'benchmark'} run."
+        )
+
         self._worker_thread = QThread(self)
+        self._worker = BenchmarkWorker(
+            self.workspace_root,
+            self.config_path,
+            target_models,
+            run_mode=run_mode,
+            single_prompt=single_prompt,
+        )
         self._worker.moveToThread(self._worker_thread)
 
-        sink = self._worker.sink
+        self._worker_thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self._on_worker_finished)
+        self._worker.finished.connect(self._worker_thread.quit)
+        self._worker_thread.finished.connect(self._worker_thread.deleteLater)
+
+        self._connect_worker_signals(self._worker.sink)
+        self._worker_thread.start()
+
+    def _connect_worker_signals(self, sink: QtEventSink):
         sink.log.connect(self._append_log)
         sink.progress_total.connect(self._on_progress_total)
         sink.model_start.connect(self._on_model_start)
@@ -1325,91 +1161,113 @@ class BenchmarkGui(QMainWindow):
         sink.model_end.connect(self._on_model_end)
         sink.run_end.connect(self._on_run_end)
 
-        self._worker_thread.started.connect(self._worker.run)
-        self._worker.finished.connect(self._on_worker_finished)
-        self._worker.finished.connect(self._worker_thread.quit)
-        self._worker_thread.finished.connect(self._on_thread_finished)
-
-        self.btn_start.setEnabled(False)
-        self.btn_stop.setEnabled(True)
-        self.btn_back_mode.setEnabled(False)
-        self.model_list.setEnabled(False)
-        self.btn_select_all.setEnabled(False)
-        self.btn_select_none.setEnabled(False)
-
-        self._worker_thread.start()
-
     def _stop(self):
-        if self._worker is not None:
-            self._stop_requested = True
-            self._set_run_state("stopping", "State: Stopping")
-            self._worker.request_cancel()
+        if self._worker is None:
+            return
+        self._stop_requested = True
+        self._set_run_badge("stopping", "State: Stopping")
         self.btn_stop.setEnabled(False)
+        self._worker.request_cancel()
+
+    def _set_run_state(self, running: bool):
+        self.btn_start.setEnabled(not running)
+        self.btn_stop.setEnabled(running)
+        self.btn_select_all.setEnabled(not running)
+        self.btn_select_none.setEnabled(not running)
+        self.btn_clear_history.setEnabled(not running)
+        self.btn_back_mode.setEnabled(not running)
+        self.btn_run_mode.setEnabled(not running)
+        self.model_list.setEnabled(not running)
+        self.prompt_edit.setReadOnly(running or self.run_mode == self.RUN_MODE_BENCHMARK)
+
+    def _on_worker_finished(self):
+        if self._worker is not None:
+            self._worker.deleteLater()
+        self._worker = None
+        self._worker_thread = None
+        self._set_run_state(False)
+        self._refresh_run_mode_ui()
+
+        if self._stop_requested:
+            self._set_run_badge("ready", "State: Stopped")
+        elif self._run_has_error:
+            self._set_run_badge("error", "State: Error")
+        else:
+            self._set_run_badge("ready", "State: Ready")
 
     def _on_progress_total(self, total: int):
         self.total_tasks_expected = max(0, int(total))
-        self.progress.setRange(0, max(1, self.total_tasks_expected))
-        self.progress.setValue(0)
-        self._append_log(f"[GUI] Total tasks expected: {self.total_tasks_expected}")
+        if self.total_tasks_expected <= 0:
+            self.progress.setRange(0, 1)
+            self.progress.setValue(0)
+        else:
+            self.progress.setRange(0, self.total_tasks_expected)
+            self.progress.setValue(0)
+        self.tasks_completed = 0
 
-    def _on_model_start(self, model_name: str, model_type: str, total_tasks: int, log_file_path: str):
-        self._append_log(f"[GUI] Model start: {model_name} ({model_type}), tasks={total_tasks}")
-        self._append_log(f"[GUI] Raw log file: {log_file_path}")
+    def _on_model_start(self, model_name: str, model_type: str, total_tasks_for_model: int, log_file_path: str):
+        self._append_log(f"[GUI] Model start: {model_name} ({model_type}), tasks={total_tasks_for_model}")
+        if log_file_path:
+            self._append_log(f"[GUI] Raw log: {log_file_path}")
+
+    def _on_model_end(self, model_name: str, status: str):
+        self._append_log(f"[GUI] Model end: {model_name}, status={status}")
+        if status and status not in ("Success", "Cancelled"):
+            self._run_has_error = True
+
+    def _on_run_end(self, report_path: str):
+        if self._stop_requested:
+            self._append_log("[GUI] Run stopped by user.")
+        if report_path:
+            self._append_log(f"[GUI] Benchmark report saved to: {report_path}")
+        elif not self._stop_requested:
+            self._append_log("[GUI] Single mode finished. No benchmark report generated.")
 
     def _on_task_start(self, model_name: str, task_dict: Dict[str, Any]):
-        prompt = str(task_dict.get("prompt", ""))
-        tid = task_dict.get("id")
-        self._current_task_key = f"{model_name}#{tid}"
-        self._stream_raw_by_task[self._current_task_key] = ""
-        self._stream_answer_by_task[self._current_task_key] = ""
-        self._live_metrics_by_task[self._current_task_key] = self._blank_runtime_metrics(status="running", stage="queued")
-        self._final_metrics_by_task.pop(self._current_task_key, None)
+        task_key = self._make_task_key(model_name, task_dict)
+        self._current_task_key = task_key
+        self._display_task_key = task_key
+        self._history_view_locked = False
+        self._stream_raw_by_task[task_key] = ""
+        self._stream_answer_by_task[task_key] = ""
+        self._live_metrics_by_task[task_key] = {"stage_status": "Running"}
 
-        img_rel = task_dict.get("image")
-        abs_path = os.path.join(self.workspace_root, str(img_rel)) if img_rel else None
-        self._task_prompt_by_key[self._current_task_key] = prompt
-        self._task_image_by_key[self._current_task_key] = abs_path
-        self._upsert_live_history_item(model_name, tid, prompt, abs_path)
-        if not self._history_view_locked:
-            self._show_task_content(
-                self._current_task_key,
-                prompt,
-                "",
-                abs_path,
-                self._live_metrics_by_task[self._current_task_key],
-            )
+        prompt = task_dict.get("prompt", "") or ""
+        image_path = self._resolve_image_path(task_dict.get("image"))
+        self._task_prompt_by_key[task_key] = prompt
+        self._task_image_by_key[task_key] = image_path
 
-        self._append_log(f"[GUI] Task start: [{model_name}] #{tid}")
+        self.prompt_edit.setPlainText(prompt)
+        self.answer_edit.clear()
+        self._set_image(image_path)
+        self._display_metrics(self._live_metrics_by_task[task_key])
 
-    def _on_task_metric(self, model_name: str, task_dict: Dict[str, Any], metrics_dict: Dict[str, Any]):
-        tid = task_dict.get("id")
-        task_key = f"{model_name}#{tid}"
-        merged_metrics = self._merge_runtime_metrics(self._live_metrics_by_task.get(task_key), metrics_dict)
-        self._live_metrics_by_task[task_key] = merged_metrics
-
-        if self._history_view_locked or self._display_task_key != task_key:
-            return
-
-        self._update_runtime_panel(merged_metrics)
+        self._live_history_item = QListWidgetItem(self._format_history_title(model_name, task_dict, running=True))
+        self._live_history_item.setData(Qt.UserRole, task_key)
+        self.history_list.addItem(self._live_history_item)
+        self.history_list.setCurrentItem(self._live_history_item)
 
     def _on_task_stream(self, model_name: str, task_dict: Dict[str, Any], text_chunk: str):
-        if not text_chunk:
-            return
-        tid = task_dict.get("id")
-        task_key = f"{model_name}#{tid}"
-        if self._current_task_key != task_key:
-            return
-        raw_text = self._stream_raw_by_task.get(task_key, "") + text_chunk
-        self._stream_raw_by_task[task_key] = raw_text
-        clean_answer = extract_stream_answer(raw_text)
-        self._stream_answer_by_task[task_key] = clean_answer
+        task_key = self._make_task_key(model_name, task_dict)
+        self._stream_raw_by_task[task_key] = self._stream_raw_by_task.get(task_key, "") + (text_chunk or "")
+        answer = extract_stream_answer(self._stream_raw_by_task[task_key])
+        if not answer:
+            answer = self._stream_raw_by_task[task_key].strip()
+        self._stream_answer_by_task[task_key] = answer
 
-        if self._history_view_locked or self._display_task_key != task_key:
-            return
+        if self._display_task_key == task_key and not self._history_view_locked:
+            self.answer_edit.setPlainText(answer)
+            self.answer_edit.verticalScrollBar().setValue(self.answer_edit.verticalScrollBar().maximum())
 
-        self.answer_edit.setPlainText(clean_answer)
-        sb = self.answer_edit.verticalScrollBar()
-        sb.setValue(sb.maximum())
+    def _on_task_metric(self, model_name: str, task_dict: Dict[str, Any], metrics_dict: Dict[str, Any]):
+        task_key = self._make_task_key(model_name, task_dict)
+        current = dict(self._live_metrics_by_task.get(task_key, {}))
+        current.update(metrics_dict or {})
+        current.setdefault("stage_status", "Running")
+        self._live_metrics_by_task[task_key] = current
+
+        if self._display_task_key == task_key:
+            self._display_metrics(current)
 
     def _on_task_end(
         self,
@@ -1418,171 +1276,230 @@ class BenchmarkGui(QMainWindow):
         success: bool,
         output_text: str,
         duration_s: float,
-        mem_metrics: Dict[str, Any],
-        parsed_metrics: Dict[str, Any],
+        mem_metrics_dict: Dict[str, Any],
+        parsed_metrics_dict: Dict[str, Any],
     ):
-        tid = task_dict.get("id")
-        task_key = f"{model_name}#{tid}"
-        prompt = str(task_dict.get("prompt", ""))
-        img_rel = task_dict.get("image")
-        image_abs = os.path.join(self.workspace_root, str(img_rel)) if img_rel else None
+        task_key = self._make_task_key(model_name, task_dict)
+        prompt = task_dict.get("prompt", "") or ""
+        image_path = self._resolve_image_path(task_dict.get("image"))
+        cancelled = (not success) and is_cancelled_output(output_text)
+        extracted = extract_answer(output_text or "")
 
-        answer = extract_answer(output_text or "")
-        rec = TaskRecord(
+        metrics = {}
+        metrics.update(parsed_metrics_dict or {})
+        metrics.update(mem_metrics_dict or {})
+        metrics["duration_s"] = duration_s
+        if cancelled:
+            metrics["stage_status"] = "Cancelled"
+        else:
+            metrics["stage_status"] = "Success" if success else "Failed"
+        self._final_metrics_by_task[task_key] = metrics
+
+        record = TaskRecord(
             model_name=model_name,
-            task_id=tid,
+            task_id=task_dict.get("id"),
             prompt=prompt,
-            image_abs_path=image_abs,
-            success=bool(success),
-            duration_s=float(duration_s),
+            image_abs_path=image_path,
+            success=success,
+            duration_s=duration_s,
             raw_output=output_text or "",
-            extracted_answer=answer,
-            runtime_metrics={},
+            extracted_answer=extracted,
+            runtime_metrics=metrics,
         )
-        self.records.append(rec)
-        self._stream_raw_by_task[task_key] = output_text or ""
-        self._stream_answer_by_task[task_key] = answer
+        self.records.append(record)
 
-        existing_metrics = self._merge_runtime_metrics(self._live_metrics_by_task.get(task_key), None)
-        final_status = existing_metrics.get("status")
-        final_stage = existing_metrics.get("stage")
-        if success:
-            final_status = "success"
-            final_stage = "finished"
-        elif output_text.startswith("Timeout after"):
-            final_status = "timeout"
-            final_stage = "timeout"
-        elif final_status in {None, "", "running", "idle"}:
-            final_status = "error"
-            final_stage = "error"
-        elif final_stage in {None, "", "queued", "init", "running", "idle"}:
-            final_stage = "error"
-
-        final_metrics = self._merge_runtime_metrics(
-            existing_metrics,
-            {
-                "stage": final_stage,
-                "status": final_status,
-                "init_dram_mb": mem_metrics.get("model_data_mb"),
-                "runtime_buffer_mb": mem_metrics.get("kv_cache_overhead_mb"),
-                "total_peak_mb": mem_metrics.get("total_peak_mb"),
-                "avg_cpu_usage_percent": mem_metrics.get("avg_cpu_usage_percent"),
-                "prefill_tps": parsed_metrics.get("prefill_tps") if parsed_metrics else None,
-                "generate_tps": parsed_metrics.get("generate_tps") if parsed_metrics else None,
-                "duration_s": duration_s,
-            },
-        )
-        self._live_metrics_by_task[task_key] = final_metrics
-        self._final_metrics_by_task[task_key] = final_metrics
-        rec.runtime_metrics = dict(final_metrics)
-
-        if self._current_task_key == task_key and not self._history_view_locked:
-            self._show_task_content(task_key, rec.prompt, rec.extracted_answer, rec.image_abs_path, final_metrics)
-
-        status_map = {
-            "success": "Success",
-            "timeout": "Timeout",
-            "stopped": "Stopped",
-            "error": "Error",
-        }
-        status = status_map.get(str(final_status), "Success" if rec.success else "Error")
-        self._finalize_live_history_item(model_name, tid, rec.prompt, image_abs, rec.duration_s, status, len(self.records) - 1)
+        if self._live_history_item is not None and self._live_history_item.data(Qt.UserRole) == task_key:
+            self._live_history_item.setText(self._format_history_title(model_name, task_dict, running=False, success=success))
+            self._live_history_item = None
+        else:
+            item = QListWidgetItem(self._format_history_title(model_name, task_dict, running=False, success=success))
+            item.setData(Qt.UserRole, task_key)
+            self.history_list.addItem(item)
 
         self.tasks_completed += 1
-        self.progress.setValue(self.tasks_completed)
+        if self.total_tasks_expected > 0:
+            self.progress.setValue(min(self.tasks_completed, self.total_tasks_expected))
 
-        tps = ""
-        try:
-            if parsed_metrics and parsed_metrics.get("generate_tps", 0.0):
-                tps = f", gen_tps={float(parsed_metrics.get('generate_tps')):.2f}"
-        except Exception:
-            tps = ""
-        self._append_log(f"[GUI] Task end: [{model_name}] #{tid} {status}, {duration_s:.2f}s{tps}")
-
-    def _on_model_end(self, model_name: str, status: str):
-        self._append_log(f"[GUI] Model end: {model_name}, status={status}")
-        if status in {"Crash/Error", "Failed", "Error"}:
+        if not success and not cancelled:
             self._run_has_error = True
-            self._set_run_state("error", "State: Error")
 
-    def _on_run_end(self, report_path: str):
-        if report_path:
-            self._append_log(f"[GUI] Report updated: {report_path}")
-        else:
-            self._append_log("[GUI] Run finished.")
+        if self._display_task_key == task_key and not self._history_view_locked:
+            self.prompt_edit.setPlainText(prompt)
+            self.answer_edit.setPlainText(extracted)
+            self._set_image(image_path)
+            self._display_metrics(metrics)
 
     def _on_history_selected(self, row: int):
         if row < 0:
             return
         item = self.history_list.item(row)
-        if item is None:
+        if not item:
             return
-        payload = item.data(Qt.UserRole)
-        if not isinstance(payload, dict):
+        task_key = item.data(Qt.UserRole)
+        if not task_key:
             return
-        kind = payload.get("kind")
-        task_key = payload.get("task_key")
-        if kind == "live" and isinstance(task_key, str) and task_key == self._current_task_key:
-            self._show_live_task()
-            return
-        rec_idx = payload.get("record_index")
-        if not isinstance(rec_idx, int) or rec_idx < 0 or rec_idx >= len(self.records):
-            return
-        rec = self.records[rec_idx]
-        self._history_view_locked = True
-        self._show_task_content(
-            f"{rec.model_name}#{rec.task_id}",
-            rec.prompt,
-            rec.extracted_answer,
-            rec.image_abs_path,
-            rec.runtime_metrics,
-        )
 
-    def _on_worker_finished(self):
-        self._append_log("[GUI] Worker finished.")
-        self.btn_start.setEnabled(True)
-        self.btn_stop.setEnabled(False)
-        self.btn_back_mode.setEnabled(True)
-        self.model_list.setEnabled(True)
-        self.btn_select_all.setEnabled(True)
-        self.btn_select_none.setEnabled(True)
-        if self._run_has_error:
-            self._set_run_state("error", "State: Error")
-        elif self._stop_requested:
-            self._set_run_state("ready", "State: Stopped")
-            if not self._history_view_locked and self._current_task_key:
-                current_metrics = self._merge_runtime_metrics(self._live_metrics_by_task.get(self._current_task_key), None)
-                if current_metrics.get("status") not in {"success", "error", "timeout"}:
-                    current_metrics = self._merge_runtime_metrics(
-                        current_metrics,
-                        {"stage": "stopped", "status": "stopped"},
-                    )
-                    self._live_metrics_by_task[self._current_task_key] = current_metrics
-                self._update_runtime_panel(current_metrics)
-        else:
-            self._set_run_state("ready", "State: Completed")
+        self._history_view_locked = task_key != self._current_task_key
+        self._display_task_key = task_key
 
-    def _on_thread_finished(self):
-        self._append_log("[GUI] Thread finished.")
-        if self._worker is not None:
-            try:
-                self._worker.deleteLater()
-            except Exception:
+        prompt = self._task_prompt_by_key.get(task_key, "")
+        image_path = self._task_image_by_key.get(task_key)
+        self.prompt_edit.setPlainText(prompt)
+        self._set_image(image_path)
+
+        for record in self.records:
+            if self._make_task_key(record.model_name, {"id": record.task_id, "prompt": record.prompt, "image": record.image_abs_path}) == task_key:
+                self.answer_edit.setPlainText(record.extracted_answer)
+                self._display_metrics(record.runtime_metrics)
+                return
+
+        self.answer_edit.setPlainText(self._stream_answer_by_task.get(task_key, ""))
+        self._display_metrics(self._live_metrics_by_task.get(task_key, {}))
+
+    def _make_task_key(self, model_name: str, task_dict: Dict[str, Any]) -> str:
+        task_id = task_dict.get("id", "")
+        image = task_dict.get("image", "") or ""
+        if image and os.path.isabs(str(image)):
+            image = os.path.relpath(str(image), self.workspace_root)
+        return f"{model_name}::{task_id}::{image}"
+
+    def _format_history_title(self, model_name: str, task_dict: Dict[str, Any], running: bool = False, success: bool = True) -> str:
+        task_id = task_dict.get("id", "?")
+        prefix = "▶" if running else ("✓" if success else "✗")
+        prompt = (task_dict.get("prompt", "") or "").replace("\n", " ").strip()
+        if len(prompt) > 52:
+            prompt = prompt[:52] + "..."
+        return f"{prefix} {model_name} / {task_id}  {prompt}"
+
+    def _resolve_image_path(self, image_path: Optional[str]) -> Optional[str]:
+        if not image_path:
+            return None
+        image_path = str(image_path)
+        if os.path.isabs(image_path):
+            return image_path
+        return os.path.join(self.workspace_root, image_path)
+
+    def _set_image(self, image_abs_path: Optional[str]):
+        self._current_image_path = image_abs_path
+        self._current_pixmap = None
+
+        if not image_abs_path:
+            self.image_label.setText("No image")
+            self.image_label.setPixmap(QPixmap())
+            return
+
+        if not os.path.exists(image_abs_path):
+            self.image_label.setText(f"Image not found:\n{image_abs_path}")
+            self.image_label.setPixmap(QPixmap())
+            return
+
+        pixmap = QPixmap(image_abs_path)
+        if pixmap.isNull():
+            self.image_label.setText(f"Failed to load image:\n{image_abs_path}")
+            self.image_label.setPixmap(QPixmap())
+            return
+
+        self._current_pixmap = pixmap
+        self._render_current_image()
+
+    def _render_current_image(self):
+        if self._current_pixmap is None or self._current_pixmap.isNull():
+            return
+        target_size = self.image_label.size()
+        scaled = self._current_pixmap.scaled(target_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.image_label.setPixmap(scaled)
+        self.image_label.setText("")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._render_current_image()
+
+    def _reset_task_display(self, clear_prompt: bool = True):
+        if clear_prompt:
+            self.prompt_edit.clear()
+        self.answer_edit.clear()
+        self._set_image(None)
+        self._clear_runtime_metrics()
+
+    def _clear_runtime_metrics(self):
+        for label in self._runtime_value_labels.values():
+            label.setText("--")
+
+    def _format_metric_value(self, key: str, value: Any) -> str:
+        if value is None or value == "":
+            # Keep compatibility with older parser/runtime key names.
+            alias_map = {
+                "current_dram_mb": ("current_memory_mb", "current_mem_mb"),
+                "init_dram_mb": ("model_data_mb",),
+                "runtime_buffer_mb": ("kv_cache_overhead_mb",),
+                "generate_tps": ("avg_generate_tps",),
+            }
+            for alias in alias_map.get(key, ()):
+                # Caller passes only value, so alias fallback is handled in _format_metrics_from_dict.
                 pass
-        if self._worker_thread is not None:
+            return "--"
+
+        if key == "stage_status":
+            return str(value)
+        if key in ("current_dram_mb", "init_dram_mb", "runtime_buffer_mb", "total_peak_mb"):
             try:
-                self._worker_thread.deleteLater()
+                return f"{float(value):.2f} MB"
             except Exception:
-                pass
-        self._worker = None
-        self._worker_thread = None
+                return str(value)
+        if key == "avg_cpu_usage_percent":
+            try:
+                return f"{float(value):.2f}%"
+            except Exception:
+                return str(value)
+        if key == "generate_tps":
+            try:
+                return f"{float(value):.2f} tok/s"
+            except Exception:
+                return str(value)
+        if key == "duration_s":
+            try:
+                return f"{float(value):.2f} s"
+            except Exception:
+                return str(value)
+        return str(value)
+
+    def _display_metrics(self, metrics: Dict[str, Any]):
+        metrics = metrics or {}
+        alias_map = {
+            "current_dram_mb": ("current_dram_mb", "current_memory_mb", "current_mem_mb"),
+            "init_dram_mb": ("init_dram_mb", "model_data_mb"),
+            "runtime_buffer_mb": ("runtime_buffer_mb", "kv_cache_overhead_mb"),
+            "total_peak_mb": ("total_peak_mb",),
+            "avg_cpu_usage_percent": ("avg_cpu_usage_percent",),
+            "generate_tps": ("generate_tps", "avg_generate_tps"),
+            "duration_s": ("duration_s",),
+            "stage_status": ("stage_status", "status", "stage"),
+        }
+        for key, label in self._runtime_value_labels.items():
+            value = None
+            for candidate in alias_map.get(key, (key,)):
+                if candidate in metrics:
+                    value = metrics.get(candidate)
+                    break
+            label.setText(self._format_metric_value(key, value))
+
+    def _append_log(self, msg: str):
+        self.log_edit.appendPlainText(str(msg))
+        self.log_edit.verticalScrollBar().setValue(self.log_edit.verticalScrollBar().maximum())
+
+    def _set_run_badge(self, state: str, text: str):
+        self.run_badge.setText(text)
+        self.run_badge.setProperty("state", state)
+        self.run_badge.style().unpolish(self.run_badge)
+        self.run_badge.style().polish(self.run_badge)
 
     def closeEvent(self, event):
-        if self._is_running():
+        thread_running = self._worker_thread is not None and self._worker_thread.isRunning()
+        if self._worker is not None or thread_running:
             QMessageBox.information(
                 self,
                 "Benchmark running",
-                "Benchmark is still running.\n\n"
+                "A benchmark is still running.\n\n"
                 "Please click Stop and wait for the current task to finish, then close the window.",
             )
             event.ignore()
@@ -1591,7 +1508,20 @@ class BenchmarkGui(QMainWindow):
 
 
 def run_gui(workspace_root: str, config_path: str, preselected_models: Optional[List[str]] = None):
-    app = QApplication(sys.argv)
-    win = BenchmarkGui(workspace_root, config_path, preselected_models=preselected_models)
-    win.show()
-    sys.exit(app.exec_())
+    app = QApplication.instance()
+    owns_app = app is None
+    if app is None:
+        app = QApplication(sys.argv)
+
+    window = BenchmarkGui(workspace_root, config_path, preselected_models=preselected_models)
+    window.show()
+
+    if owns_app:
+        sys.exit(app.exec_())
+    return window
+
+
+if __name__ == "__main__":
+    workspace = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    config = os.path.join(workspace, "conf", "models_config.yaml")
+    run_gui(workspace, config)
